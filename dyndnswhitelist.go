@@ -1,5 +1,5 @@
-// Package dyndnswhitelist DynDNSWhitelist
-package dyndnswhitelist
+// Package ddnswhitelist dynamic DNS whitelist
+package ddnswhitelist
 
 import (
 	"bytes"

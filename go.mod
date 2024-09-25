@@ -1,3 +1,3 @@
-module github.com/taskmedia/DynDNSwhitelist
+module github.com/taskmedia/DDNSwhitelist
 
 go 1.23.1

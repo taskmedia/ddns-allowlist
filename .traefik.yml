@@ -1,10 +1,10 @@
-displayName: DynDNS whitelist
+displayName: DDNS whitelist
 type: middleware
 iconPath: .assets/icon.png
 
-import: github.com/taskmedia/traefik-dyndns
+import: github.com/taskmedia/traefik-ddns
 
-summary: 'A middleware that allows you to specify DynDNS to IP whitelist'
+summary: 'A middleware that allows you to specify Dynamic DNS to IP whitelist'
 
 testData:
   Headers:

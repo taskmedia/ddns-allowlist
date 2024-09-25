@@ -1,4 +1,4 @@
-package dyndnswhitelist
+package ddnswhitelist
 
 import (
 	"context"
