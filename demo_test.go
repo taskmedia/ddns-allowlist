@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/traefik/plugindemo"
+	plugindemo "github.com/taskmedia/traefik-dyndns"
 )
 
 func TestDemo(t *testing.T) {

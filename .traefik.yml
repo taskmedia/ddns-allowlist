@@ -1,10 +1,10 @@
-displayName: Demo Plugin
+displayName: DynDNS whitelist
 type: middleware
 iconPath: .assets/icon.png
 
-import: github.com/traefik/plugindemo
+import: github.com/taskmedia/traefik-dyndns
 
-summary: '[Demo] Add Request Header'
+summary: 'A middleware that allows you to specify DynDNS to IP whitelist'
 
 testData:
   Headers:
