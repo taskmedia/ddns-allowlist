@@ -1,16 +1,14 @@
-package plugindemo_test
+package dyndnswhitelist
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	plugindemo "github.com/taskmedia/traefik-dyndns"
 )
 
 func TestDemo(t *testing.T) {
-	cfg := plugindemo.CreateConfig()
+	cfg := CreateConfig()
 	cfg.Headers["X-Host"] = "[[.Host]]"
 	cfg.Headers["X-Method"] = "[[.Method]]"
 	cfg.Headers["X-URL"] = "[[.URL]]"
@@ -18,9 +16,9 @@ func TestDemo(t *testing.T) {
 	cfg.Headers["X-Demo"] = "test"
 
 	ctx := context.Background()
-	next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {})
+	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
 
-	handler, err := plugindemo.New(ctx, next, cfg, "demo-plugin")
+	handler, err := New(ctx, next, cfg, "demo-plugin")
 	if err != nil {
 		t.Fatal(err)
 	}
