@@ -1,6 +1,6 @@
 displayName: DDNS whitelist
 type: middleware
-iconPath: .assets/icon.png
+iconPath: .assets/logo.png
 
 import: github.com/taskmedia/traefik-ddns
 
