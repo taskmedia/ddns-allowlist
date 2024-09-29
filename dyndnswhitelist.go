@@ -9,8 +9,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-
-	"github.com/asaskevich/govalidator"
 )
 
 const (
@@ -42,12 +40,6 @@ type DdnsWhitelist struct {
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	if len(config.DdnsHostList) == 0 {
 		return nil, errors.New("no host list provided")
-	}
-
-	for _, host := range config.DdnsHostList {
-		if !govalidator.IsDNSName(host) {
-			return nil, fmt.Errorf("invalid host provided: %v", host)
-		}
 	}
 
 	return &DdnsWhitelist{
