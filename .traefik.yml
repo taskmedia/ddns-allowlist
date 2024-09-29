@@ -2,7 +2,7 @@ displayName: DDNS whitelist
 type: middleware
 iconPath: .assets/logo.png
 
-import: github.com/taskmedia/traefik-ddns
+import: github.com/taskmedia/ddnswhitelist
 
 summary: 'A middleware that allows you to specify Dynamic DNS to IP whitelist'
 
