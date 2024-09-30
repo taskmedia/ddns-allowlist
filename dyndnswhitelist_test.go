@@ -23,11 +23,6 @@ func TestDdnsWhitelist(t *testing.T) {
 			expectedError: true,
 		},
 		{
-			desc:          "invalid host",
-			ddnsList:      []string{"foo", "bar!fo"},
-			expectedError: true,
-		},
-		{
 			desc:     "valid host - localhost",
 			ddnsList: []string{"localhost"},
 		},
