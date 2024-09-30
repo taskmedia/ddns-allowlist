@@ -14,9 +14,10 @@ type Logger struct {
 	_infof  func(format string, args ...interface{})
 	_debugf func(format string, args ...interface{})
 	_errorf func(format string, args ...interface{})
+	context map[string]interface{}
 }
 
-func NewLogger(_logLevel string) *Logger {
+func NewLogger(_logLevel string, middleware, middlewareType string) *Logger {
 	logLevel := strings.ToLower(_logLevel)
 	// This globally sets the flags for the standard logger which is generally
 	// a bad practice, however, since Traefik is capturing the output of the
@@ -44,6 +45,10 @@ func NewLogger(_logLevel string) *Logger {
 		_errorf: func(format string, args ...interface{}) {
 			log.Printf(format+"\n", args...)
 		},
+		context: map[string]interface{}{
+			"middlewareName": middleware,
+			"middlewareType": middlewareType,
+		},
 	}
 
 	noopLog := func(args ...interface{}) {}
@@ -66,26 +71,48 @@ func NewLogger(_logLevel string) *Logger {
 	return logger
 }
 
+func (l *Logger) logWithContext(logFunc func(args ...interface{}), args ...interface{}) {
+	if len(l.context) > 0 {
+		contextStr := ""
+		for k, v := range l.context {
+			contextStr += fmt.Sprintf("%s=%v ", k, v)
+		}
+		args = append([]interface{}{contextStr}, args...)
+	}
+	logFunc(args...)
+}
+
+func (l *Logger) logWithContextf(logFunc func(format string, args ...interface{}), format string, args ...interface{}) {
+	if len(l.context) > 0 {
+		contextStr := ""
+		for k, v := range l.context {
+			contextStr += fmt.Sprintf("%s=%v ", k, v)
+		}
+		format = contextStr + format
+	}
+	logFunc(format, args...)
+}
+
 func (l *Logger) Debug(args ...interface{}) {
-	l._debug(args...)
+	l.logWithContext(l._debug, args...)
 }
 
 func (l *Logger) Info(args ...interface{}) {
-	l._info(args...)
+	l.logWithContext(l._info, args...)
 }
 
 func (l *Logger) Error(args ...interface{}) {
-	l._error(args...)
+	l.logWithContext(l._error, args...)
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l._debugf(format, args...)
+	l.logWithContextf(l._debugf, format, args...)
 }
 
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l._infof(format, args...)
+	l.logWithContextf(l._infof, format, args...)
 }
 
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l._errorf(format, args...)
+	l.logWithContextf(l._errorf, format, args...)
 }

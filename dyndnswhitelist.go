@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	typeName      = "DDNSwhitelist"
 	xForwardedFor = "X-Forwarded-For"
 )
 
@@ -37,7 +38,11 @@ type DdnsWhitelist struct {
 
 // New created a new DDNSwhitelist plugin
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
+	logger := NewLogger("info", name, typeName)
+	logger.Debug("Creating middleware")
+
 	if len(config.DdnsHostList) == 0 {
+		logger.Error("no host list provided")
 		return nil, errors.New("no host list provided")
 	}
 
@@ -50,7 +55,7 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 
 // ServeHTTP DDNSwhitelist
 func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	logger := NewLogger("info")
+	logger := NewLogger("info", a.name, typeName)
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
