@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -51,11 +50,13 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 
 // ServeHTTP DDNSwhitelist
 func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	logger := NewLogger("info")
+
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
 	aIps, err := NewAllowedIps(a.config.DdnsHostList)
 	if err != nil {
-		log.Printf("DDNSwhitelist: could not look up ip address: %v", err)
+		logger.Errorf("could not look up ip address: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -66,11 +67,11 @@ func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for i := reqIpAddrLenOffset; i >= 0; i-- {
 		isAllowed, err := aIps.Contains(reqIpAddr[i])
 		if err != nil {
-			log.Printf("%v", err)
+			logger.Errorf("%v", err)
 		}
 
 		if !isAllowed {
-			log.Printf("DDNSwhitelist: request denied [%s]", reqIpAddr[i])
+			logger.Infof("request denied [%s]", reqIpAddr[i])
 			rw.WriteHeader(http.StatusForbidden)
 			return
 		}
