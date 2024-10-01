@@ -1,15 +1,11 @@
 run:
   timeout: 3m
-  skip-files: []
-  skip-dirs: []
 
 linters-settings:
   govet:
     enable-all: true
     disable:
       - fieldalignment
-  golint:
-    min-confidence: 0
   gocyclo:
     min-complexity: 12
   goconst:
@@ -52,7 +48,6 @@ linters:
 
 issues:
   exclude-use-default: false
-  max-per-linter: 0
   max-same-issues: 0
   exclude: []
   exclude-rules:
