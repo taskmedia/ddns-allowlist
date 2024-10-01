@@ -6,7 +6,7 @@ Dynamic DNS whitelist plugin for Traefik.
 
 The `ddns-whitelist` plugin for Traefik allows you to whitelist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
 
-The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io).
+The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fbe453573cd7803d65cb10/ddns-whitelist).
 
 ## Installation
 
