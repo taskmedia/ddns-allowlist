@@ -1,28 +1,28 @@
-# DDNSwhitelist - Traefik plugin
+# DDNS whitelist - Traefik plugin
 
 Dynamic DNS whitelist plugin for Traefik.
 
 ## About
 
-The `DDNSwhitelist` plugin for Traefik allows you to whitelist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
+The `ddns-whitelist` plugin for Traefik allows you to whitelist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
 
 The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io).
 
 ## Installation
 
-To install the `DDNSwhitelist` plugin, add the following configuration to your Traefik static configuration:
+To install the `ddns-whitelist` plugin, add the following configuration to your Traefik static configuration:
 
 ```yaml
 experimental:
   plugins:
-    ddnswhitelist:
-      moduleName: "github.com/taskmedia/DDNSwhitelist"
-      version: v1.0.0
+    ddns-whitelist:
+      moduleName: "github.com/taskmedia/ddns-whitelist"
+      version: v1.0.0 # TODO: use main for this example?
 ```
 
 ## Configuration
 
-Add the `DDNSwhitelist` middleware to your Traefik dynamic configuration:
+Add the `ddns-whitelist` middleware to your Traefik dynamic configuration:
 
 ```yaml
 # Dynamic configuration
@@ -35,7 +35,7 @@ http:
       entryPoints:
         - web
       middlewares:
-        - ddnswhitelist-router
+        - ddns-whitelist-router
 
   services:
     service-foo:
@@ -44,9 +44,9 @@ http:
           - url: http://127.0.0.1:5000
 
   middlewares:
-    ddnswhitelist-router:
+    ddns-whitelist-router:
       plugin:
-        ddnswhitelist:
+        ddns-whitelist:
           DdnsHostList:
             - my.router.ddns.tld
 ```

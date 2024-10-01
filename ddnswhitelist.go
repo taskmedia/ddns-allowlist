@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	typeName      = "DDNSwhitelist"
+	typeName      = "ddns-whitelist"
 	xForwardedFor = "X-Forwarded-For"
 )
 
