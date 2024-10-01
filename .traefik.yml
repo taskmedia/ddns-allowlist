@@ -9,3 +9,5 @@ summary: 'A middleware that allows you to whitelist on a dynamic DNS'
 testData:
   hostList:
   - my.router.ddns.tld
+  ipList:
+  - 1.2.3.4

@@ -16,6 +16,7 @@ func TestDdnsWhitelist(t *testing.T) {
 	testCases := []struct {
 		desc          string
 		hostList      []string
+		ipList        []string
 		expectedError bool
 	}{
 		{
@@ -31,6 +32,11 @@ func TestDdnsWhitelist(t *testing.T) {
 			desc:     "valid host - github.com",
 			hostList: []string{"github.com"},
 		},
+		{
+			desc:     "valid host - github.com",
+			hostList: []string{"localhost"},
+			ipList:   []string{"192.168.1.1"},
+		},
 	}
 
 	for _, test := range testCases {
@@ -39,6 +45,7 @@ func TestDdnsWhitelist(t *testing.T) {
 
 			cfg := CreateConfig()
 			cfg.HostList = test.hostList
+			cfg.IPList = test.ipList
 
 			ctx := context.Background()
 			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
@@ -59,6 +66,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 	testCases := []struct {
 		desc      string
 		hostList  []string
+		ipList    []string
 		reqIPAddr string
 		expected  int
 	}{
@@ -92,6 +100,20 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 			reqIPAddr: "127.0.0.1",
 			expected:  http.StatusInternalServerError,
 		},
+		{
+			desc:      "allowed ip",
+			hostList:  []string{"localhost"},
+			ipList:    []string{"1.2.3.4"},
+			reqIPAddr: "1.2.3.4",
+			expected:  http.StatusOK,
+		},
+		{
+			desc:      "invalid ip list",
+			hostList:  []string{"localhost"},
+			ipList:    []string{"invalid-ip"},
+			reqIPAddr: "127.0.0.1",
+			expected:  http.StatusInternalServerError,
+		},
 	}
 
 	for _, test := range testCases {
@@ -100,6 +122,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 
 			cfg := CreateConfig()
 			cfg.HostList = test.hostList
+			cfg.IPList = test.ipList
 
 			ctx := context.Background()
 
