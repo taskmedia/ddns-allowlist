@@ -1,6 +1,9 @@
-// Package ddnswhitelist usesthis implementation to log messages
+// Package ddns_whitelist usesthis implementation to log messages
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
-package ddnswhitelist
+//
+//revive:disable-next-line:var-naming
+//nolint:stylecheck
+package ddns_whitelist
 
 import (
 	"fmt"
