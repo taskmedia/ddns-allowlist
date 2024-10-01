@@ -1,0 +1,26 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ddnswhitelist-allow
+spec:
+  plugin:
+    ddnsWhitelist:
+      DdnsHostList:
+      - localhost
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami-allow
+spec:
+  entryPoints:
+  - web
+  routes:
+  - match: Host(`allow.whoami.localhost`)
+    kind: Rule
+    services:
+    - name: whoami
+      port: 80
+    middlewares:
+    - name: ddnswhitelist-allow
+
