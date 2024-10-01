@@ -15,21 +15,21 @@ import (
 func TestDdnsWhitelist(t *testing.T) {
 	testCases := []struct {
 		desc          string
-		ddnsList      []string
+		hostList      []string
 		expectedError bool
 	}{
 		{
 			desc:          "empty host list",
-			ddnsList:      []string{},
+			hostList:      []string{},
 			expectedError: true,
 		},
 		{
 			desc:     "valid host - localhost",
-			ddnsList: []string{"localhost"},
+			hostList: []string{"localhost"},
 		},
 		{
 			desc:     "valid host - github.com",
-			ddnsList: []string{"github.com"},
+			hostList: []string{"github.com"},
 		},
 	}
 
@@ -38,7 +38,7 @@ func TestDdnsWhitelist(t *testing.T) {
 			t.Parallel()
 
 			cfg := CreateConfig()
-			cfg.DdnsHostList = test.ddnsList
+			cfg.HostList = test.hostList
 
 			ctx := context.Background()
 			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
@@ -58,37 +58,37 @@ func TestDdnsWhitelist(t *testing.T) {
 func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 	testCases := []struct {
 		desc      string
-		ddnsList  []string
+		hostList  []string
 		reqIPAddr string
 		expected  int
 	}{
 		{
 			desc:      "allowed host internal - localhost",
-			ddnsList:  []string{"localhost"},
+			hostList:  []string{"localhost"},
 			reqIPAddr: "127.0.0.1",
 			expected:  http.StatusOK,
 		},
 		{
 			desc:      "allowed host external - dns.google",
-			ddnsList:  []string{"dns.google"},
+			hostList:  []string{"dns.google"},
 			reqIPAddr: "8.8.8.8",
 			expected:  http.StatusOK,
 		},
 		{
 			desc:      "denied host internal - localhost",
-			ddnsList:  []string{"localhost"},
+			hostList:  []string{"localhost"},
 			reqIPAddr: "10.10.10.10",
 			expected:  http.StatusForbidden,
 		},
 		{
 			desc:      "denied host external - dns.google",
-			ddnsList:  []string{"localhost"},
+			hostList:  []string{"localhost"},
 			reqIPAddr: "8.8.8.8",
 			expected:  http.StatusForbidden,
 		},
 		{
 			desc:      "invalid host list",
-			ddnsList:  []string{"invalid"},
+			hostList:  []string{"invalid"},
 			reqIPAddr: "127.0.0.1",
 			expected:  http.StatusInternalServerError,
 		},
@@ -99,7 +99,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 			t.Parallel()
 
 			cfg := CreateConfig()
-			cfg.DdnsHostList = test.ddnsList
+			cfg.HostList = test.hostList
 
 			ctx := context.Background()
 

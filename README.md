@@ -47,6 +47,6 @@ http:
     ddns-whitelist-router:
       plugin:
         ddns-whitelist:
-          DdnsHostList:
+          hostList:
             - my.router.ddns.tld
 ```
