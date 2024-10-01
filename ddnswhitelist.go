@@ -29,7 +29,7 @@ var (
 // Config the plugin configuration.
 type Config struct {
 	HostList []string `json:"hostList,omitempty"` // Add hosts to whitelist
-	IpList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to whitelist
+	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to whitelist
 }
 
 type allowedIps []*net.IP
@@ -38,7 +38,7 @@ type allowedIps []*net.IP
 func CreateConfig() *Config {
 	return &Config{
 		HostList: []string{},
-		IpList:   []string{},
+		IPList:   []string{},
 	}
 }
 
@@ -71,7 +71,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
-	aIps, err := newAllowedIps(a.config.HostList, a.config.IpList)
+	aIps, err := newAllowedIps(a.config.HostList, a.config.IPList)
 	if err != nil {
 		logger.Errorf("could not look up ip address: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)

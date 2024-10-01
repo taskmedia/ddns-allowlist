@@ -45,7 +45,7 @@ func TestDdnsWhitelist(t *testing.T) {
 
 			cfg := CreateConfig()
 			cfg.HostList = test.hostList
-			cfg.IpList = test.ipList
+			cfg.IPList = test.ipList
 
 			ctx := context.Background()
 			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
@@ -122,7 +122,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 
 			cfg := CreateConfig()
 			cfg.HostList = test.hostList
-			cfg.IpList = test.ipList
+			cfg.IPList = test.ipList
 
 			ctx := context.Background()
 
