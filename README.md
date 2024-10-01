@@ -1,4 +1,4 @@
-# DDNSwhitelist - Traefik Plugin
+# DDNSwhitelist - Traefik plugin
 
 Dynamic DNS whitelist plugin for Traefik.
 
@@ -16,7 +16,7 @@ To install the `DDNSwhitelist` plugin, add the following configuration to your T
 experimental:
   plugins:
     ddnswhitelist:
-      moduleName: "github.com/taskmedia/ddnswhitelist"
+      moduleName: "github.com/taskmedia/DDNSwhitelist"
       version: v1.0.0
 ```
 
