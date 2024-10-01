@@ -5,7 +5,7 @@ metadata:
 spec:
   plugin:
     ddnsWhitelist:
-      DdnsHostList:
+      hostList:
       - localhost
 ---
 apiVersion: traefik.io/v1alpha1
