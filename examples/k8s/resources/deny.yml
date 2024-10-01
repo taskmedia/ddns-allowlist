@@ -1,0 +1,26 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ddnswhitelist-deny
+spec:
+  plugin:
+    ddnsWhitelist:
+      hostList:
+      - dns.google
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami-deny
+spec:
+  entryPoints:
+  - web
+  routes:
+  - match: Host(`deny.whoami.localhost`)
+    kind: Rule
+    services:
+    - name: whoami
+      port: 80
+    middlewares:
+    - name: ddnswhitelist-deny
+

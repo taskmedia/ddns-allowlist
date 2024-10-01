@@ -1,0 +1,18 @@
+# Traefik installation with DDNS whitelist plugin
+experimental:
+  plugins:
+    ddnsWhitelist:
+      moduleName: github.com/taskmedia/ddns-whitelist
+      version: v1.1.1
+
+globalArguments:
+- "--global.checknewversion=false"
+- "--global.sendanonymoususage=false"
+
+ingressRoute:
+  dashboard:
+    enabled: true
+
+logs:
+  general:
+    level: DEBUG
