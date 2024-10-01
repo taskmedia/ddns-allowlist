@@ -62,7 +62,7 @@ jobs:
           go mod download
           go mod vendor
           # git diff --exit-code ./vendor/
-          cp -R vendor/ ${GOPATH}/src/
+          cp -R vendor/ ${{ github.workspace }}/go/src/
 
       - name: Lint and Tests
         run: make
