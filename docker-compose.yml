@@ -34,4 +34,4 @@ services:
     - "traefik.http.routers.whoami-deny.rule=Host(`deny.whoami.localhost`)"
     - "traefik.http.routers.whoami-deny.entrypoints=web"
     - "traefik.http.routers.whoami-deny.middlewares=ddnswl-deny@docker"
-    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-whitelist.hostList=localhost,dns.google.com"
+    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-whitelist.hostList=localhost,dns.google"
