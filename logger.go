@@ -1,3 +1,4 @@
+// Package ddnswhitelist
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 package ddnswhitelist
 
@@ -7,6 +8,7 @@ import (
 	"strings"
 )
 
+// Logger will log messages with context
 type Logger struct {
 	_info   func(args ...interface{})
 	_debug  func(args ...interface{})
@@ -51,8 +53,8 @@ func NewLogger(_logLevel string, middleware, middlewareType string) *Logger {
 		},
 	}
 
-	noopLog := func(args ...interface{}) {}
-	noopLogf := func(format string, args ...interface{}) {}
+	noopLog := func(_ ...interface{}) {}
+	noopLogf := func(_ string, _ ...interface{}) {}
 
 	switch logLevel {
 	default:
@@ -93,26 +95,32 @@ func (l *Logger) logWithContextf(logFunc func(format string, args ...interface{}
 	logFunc(format, args...)
 }
 
+// Debug prints an debug log.
 func (l *Logger) Debug(args ...interface{}) {
 	l.logWithContext(l._debug, args...)
 }
 
+// Info prints an info log.
 func (l *Logger) Info(args ...interface{}) {
 	l.logWithContext(l._info, args...)
 }
 
+// Error prints an error log.
 func (l *Logger) Error(args ...interface{}) {
 	l.logWithContext(l._error, args...)
 }
 
+// Debugf prints an debug log.
 func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.logWithContextf(l._debugf, format, args...)
 }
 
+// Infof prints an info log.
 func (l *Logger) Infof(format string, args ...interface{}) {
 	l.logWithContextf(l._infof, format, args...)
 }
 
+// Errorf prints an error log.
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.logWithContextf(l._errorf, format, args...)
 }

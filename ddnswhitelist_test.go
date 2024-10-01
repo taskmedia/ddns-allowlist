@@ -11,7 +11,6 @@ import (
 )
 
 func TestDdnsWhitelist(t *testing.T) {
-
 	testCases := []struct {
 		desc          string
 		ddnsList      []string
@@ -33,7 +32,6 @@ func TestDdnsWhitelist(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -95,7 +93,6 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -104,7 +101,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 
 			ctx := context.Background()
 
-			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})
 

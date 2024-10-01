@@ -15,28 +15,28 @@ const (
 	xForwardedFor = "X-Forwarded-For"
 )
 
-// Config the plugin configuration
+// Config the plugin configuration.
 type Config struct {
 	DdnsHostList []string `json:"ddnsHostList,omitempty"` // Add hosts to whitelist
 }
 
-type AllowedIps []*net.IP
+type allowedIps []*net.IP
 
-// CreateConfig creates the default plugin configuration
+// CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
 	return &Config{
 		DdnsHostList: []string{},
 	}
 }
 
-// DDNSwhitelist plugin
+// DdnsWhitelist plugin.
 type DdnsWhitelist struct {
 	config *Config
 	name   string
 	next   http.Handler
 }
 
-// New created a new DDNSwhitelist plugin
+// New created a new DDNSwhitelist plugin.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	logger := NewLogger("info", name, typeName)
 	logger.Debug("Creating middleware")
@@ -53,30 +53,30 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 	}, nil
 }
 
-// ServeHTTP DDNSwhitelist
+// ServeHTTP DDNSwhitelist.
 func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := NewLogger("info", a.name, typeName)
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
-	aIps, err := NewAllowedIps(a.config.DdnsHostList)
+	aIps, err := newAllowedIps(a.config.DdnsHostList)
 	if err != nil {
 		logger.Errorf("could not look up ip address: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	reqIpAddr := a.GetRemoteIP(req)
-	reqIpAddrLenOffset := len(reqIpAddr) - 1
+	reqIPAddr := a.GetRemoteIP(req)
+	reqIPAddrLenOffset := len(reqIPAddr) - 1
 
-	for i := reqIpAddrLenOffset; i >= 0; i-- {
-		isAllowed, err := aIps.Contains(reqIpAddr[i])
+	for i := reqIPAddrLenOffset; i >= 0; i-- {
+		isAllowed, err := aIps.contains(reqIPAddr[i])
 		if err != nil {
 			logger.Errorf("%v", err)
 		}
 
 		if !isAllowed {
-			logger.Infof("request denied [%s]", reqIpAddr[i])
+			logger.Infof("request denied [%s]", reqIPAddr[i])
 			rw.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -85,7 +85,7 @@ func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	a.next.ServeHTTP(rw, req)
 }
 
-func (a *AllowedIps) Contains(ipString string) (bool, error) {
+func (a *allowedIps) contains(ipString string) (bool, error) {
 	if len(ipString) == 0 {
 		return false, errors.New("empty IP address")
 	}
@@ -135,8 +135,8 @@ func (a *DdnsWhitelist) GetRemoteIP(req *http.Request) []string {
 	return ipList
 }
 
-func NewAllowedIps(hosts []string) (*AllowedIps, error) {
-	aIps := &AllowedIps{}
+func newAllowedIps(hosts []string) (*allowedIps, error) {
+	aIps := &allowedIps{}
 
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
@@ -145,7 +145,8 @@ func NewAllowedIps(hosts []string) (*AllowedIps, error) {
 		}
 
 		for _, i := range ip {
-			*aIps = append(*aIps, &i)
+			iCopy := i
+			*aIps = append(*aIps, &iCopy)
 		}
 	}
 
