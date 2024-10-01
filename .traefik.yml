@@ -4,9 +4,8 @@ iconPath: .assets/logo.png
 
 import: github.com/taskmedia/ddnswhitelist
 
-summary: 'A middleware that allows you to specify Dynamic DNS to IP whitelist'
+summary: 'A middleware that allows you to whitelist on a dynamic DNS'
 
 testData:
-  Headers:
-    X-Demo: test
-    X-URL: '{{URL}}'
+  ddnsHostList:
+  - my.router.ddns.tld
