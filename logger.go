@@ -1,4 +1,4 @@
-// Package ddnswhitelist
+// Package ddnswhitelist implements logging methods for dnswhitelist
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 package ddnswhitelist
 
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Logger will log messages with context
+// Logger will log messages with context.
 type Logger struct {
 	_info   func(args ...interface{})
 	_debug  func(args ...interface{})
@@ -19,7 +19,8 @@ type Logger struct {
 	context map[string]interface{}
 }
 
-func NewLogger(_logLevel string, middleware, middlewareType string) *Logger {
+// newLogger is used to log messages with context in Traefik log format.
+func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 	logLevel := strings.ToLower(_logLevel)
 	// This globally sets the flags for the standard logger which is generally
 	// a bad practice, however, since Traefik is capturing the output of the

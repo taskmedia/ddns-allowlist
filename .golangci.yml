@@ -21,6 +21,17 @@ linters-settings:
       - FIXME
   gofumpt:
     extra-rules: true
+  depguard:
+    rules:
+      testify:
+        files:
+          # - $all
+          - "$test"
+        allow:
+          - $gostd
+          - github.com/stretchr/testify/assert
+          - github.com/stretchr/testify/require
+
 
 linters:
   enable-all: true

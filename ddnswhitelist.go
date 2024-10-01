@@ -15,6 +15,13 @@ const (
 	xForwardedFor = "X-Forwarded-For"
 )
 
+// Define static error variable.
+var (
+	errNoHostListProvided = errors.New("no host list provided")
+	errEmptyIPAddress     = errors.New("empty IP address")
+	errParseIPAddress     = errors.New("could not parse IP address")
+)
+
 // Config the plugin configuration.
 type Config struct {
 	DdnsHostList []string `json:"ddnsHostList,omitempty"` // Add hosts to whitelist
@@ -38,12 +45,12 @@ type DdnsWhitelist struct {
 
 // New created a new DDNSwhitelist plugin.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	logger := NewLogger("info", name, typeName)
+	logger := newLogger("info", name, typeName)
 	logger.Debug("Creating middleware")
 
 	if len(config.DdnsHostList) == 0 {
 		logger.Error("no host list provided")
-		return nil, errors.New("no host list provided")
+		return nil, errNoHostListProvided
 	}
 
 	return &DdnsWhitelist{
@@ -55,7 +62,7 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 
 // ServeHTTP DDNSwhitelist.
 func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	logger := NewLogger("info", a.name, typeName)
+	logger := newLogger("info", a.name, typeName)
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
@@ -87,12 +94,12 @@ func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 func (a *allowedIps) contains(ipString string) (bool, error) {
 	if len(ipString) == 0 {
-		return false, errors.New("empty IP address")
+		return false, errEmptyIPAddress
 	}
 
 	ipAddr := net.ParseIP(ipString)
 	if ipAddr == nil {
-		return false, fmt.Errorf("unable to parse IP address: %s", ipString)
+		return false, fmt.Errorf("%w: %s", errParseIPAddress, ipAddr.String())
 	}
 
 	for _, ip := range *a {
