@@ -27,7 +27,7 @@ var (
 
 // Config the plugin configuration.
 type Config struct {
-	DdnsHostList []string `json:"ddnsHostList,omitempty"` // Add hosts to whitelist
+	HostList []string `json:"hostList,omitempty"` // Add hosts to whitelist
 }
 
 type allowedIps []*net.IP
@@ -35,12 +35,12 @@ type allowedIps []*net.IP
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
 	return &Config{
-		DdnsHostList: []string{},
+		HostList: []string{},
 	}
 }
 
-// DdnsWhitelist plugin.
-type DdnsWhitelist struct {
+// ddnswhitelist plugin.
+type ddnswhitelist struct {
 	config *Config
 	name   string
 	next   http.Handler
@@ -51,25 +51,24 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 	logger := newLogger("info", name, typeName)
 	logger.Debug("Creating middleware")
 
-	if len(config.DdnsHostList) == 0 {
-		logger.Error("no host list provided")
+	if len(config.HostList) == 0 {
 		return nil, errNoHostListProvided
 	}
 
-	return &DdnsWhitelist{
+	return &ddnswhitelist{
 		name:   name,
 		next:   next,
 		config: config,
 	}, nil
 }
 
-// ServeHTTP DDNSwhitelist.
-func (a *DdnsWhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+// ServeHTTP ddnswhitelist.
+func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := newLogger("info", a.name, typeName)
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
-	aIps, err := newAllowedIps(a.config.DdnsHostList)
+	aIps, err := newAllowedIps(a.config.HostList)
 	if err != nil {
 		logger.Errorf("could not look up ip address: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -115,7 +114,7 @@ func (a *allowedIps) contains(ipString string) (bool, error) {
 
 // GetRemoteIP returns a list of IPs that are associated with this request
 // from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
-func (a *DdnsWhitelist) GetRemoteIP(req *http.Request) []string {
+func (a *ddnswhitelist) GetRemoteIP(req *http.Request) []string {
 	var ipList []string
 
 	xff := req.Header.Get(xForwardedFor)
