@@ -17,7 +17,7 @@ experimental:
   plugins:
     ddns-whitelist:
       moduleName: "github.com/taskmedia/ddns-whitelist"
-      version: v1.0.0 # TODO: use main for this example?
+      version: v2.0.0
 ```
 
 ## Configuration
