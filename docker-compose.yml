@@ -11,7 +11,7 @@ services:
     - "--providers.docker=true"
     - "--providers.docker.exposedbydefault=false"
     - "--entryPoints.web.address=:80"
-    - "--experimental.localPlugins.ddnswhitelist.modulename=github.com/taskmedia/ddnswhitelist"
+    - "--experimental.localPlugins.ddns-whitelist.modulename=github.com/taskmedia/ddns-whitelist"
     extra_hosts:
     - "dockerhost=192.168.65.1"
     ports:
@@ -19,7 +19,7 @@ services:
     - "8080:8080"
     volumes:
     - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    - "./:/plugins-local/src/github.com/taskmedia/ddnswhitelist:ro"
+    - "./:/plugins-local/src/github.com/taskmedia/ddns-whitelist:ro"
     - "./dyn:/dyn"
 
   whoami:
@@ -29,9 +29,9 @@ services:
     - "traefik.enable=true"
     - "traefik.http.routers.whoami-allow.rule=Host(`allow.whoami.localhost`)"
     - "traefik.http.routers.whoami-allow.entrypoints=web"
-    - "traefik.http.routers.whoami-allow.middlewares=ddnywl-allow@docker"
-    - "traefik.http.middlewares.ddnywl-allow.plugin.ddnswhitelist.DdnsHostList=localhost,dockerhost"
+    - "traefik.http.routers.whoami-allow.middlewares=ddnswl-allow@docker"
+    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-whitelist.DdnsHostList=localhost,dockerhost"
     - "traefik.http.routers.whoami-deny.rule=Host(`deny.whoami.localhost`)"
     - "traefik.http.routers.whoami-deny.entrypoints=web"
-    - "traefik.http.routers.whoami-deny.middlewares=ddnywl-deny@docker"
-    - "traefik.http.middlewares.ddnywl-deny.plugin.ddnswhitelist.DdnsHostList=localhost,dns.google.com"
+    - "traefik.http.routers.whoami-deny.middlewares=ddnswl-deny@docker"
+    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-whitelist.DdnsHostList=localhost,dns.google.com"

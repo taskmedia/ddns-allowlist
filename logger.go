@@ -1,4 +1,4 @@
-// Package ddnswhitelist implements logging methods for dnswhitelist
+// Package ddnswhitelist usesthis implementation to log messages
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 package ddnswhitelist
 

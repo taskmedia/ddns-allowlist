@@ -41,7 +41,7 @@ func TestDdnsWhitelist(t *testing.T) {
 			ctx := context.Background()
 			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
 
-			handler, err := New(ctx, next, cfg, "ddnswhitelist-plugin")
+			handler, err := New(ctx, next, cfg, "ddns-whitelist")
 
 			if test.expectedError {
 				assert.Error(t, err)
@@ -105,7 +105,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			handler, err := New(ctx, next, cfg, "ddnswhitelist-plugin")
+			handler, err := New(ctx, next, cfg, "ddns-whitelist")
 			require.NoError(t, err)
 			assert.NotNil(t, handler)
 

@@ -2,7 +2,7 @@ displayName: DDNS whitelist
 type: middleware
 iconPath: .assets/logo.png
 
-import: github.com/taskmedia/ddnswhitelist
+import: github.com/taskmedia/ddns-whitelist
 
 summary: 'A middleware that allows you to whitelist on a dynamic DNS'
 
