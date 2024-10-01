@@ -81,9 +81,9 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 			expected:  http.StatusForbidden,
 		},
 		{
-			desc:      "denied host external - dns.google",
+			desc:      "denied host external",
 			hostList:  []string{"localhost"},
-			reqIPAddr: "8.8.8.8",
+			reqIPAddr: "1.2.3.4",
 			expected:  http.StatusForbidden,
 		},
 		{
