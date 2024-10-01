@@ -1,5 +1,8 @@
-// Package ddnswhitelist dynamic DNS whitelist
-package ddnswhitelist
+// Package ddns_whitelist dynamic DNS whitelist
+//
+//revive:disable-next-line:var-naming
+//nolint:stylecheck
+package ddns_whitelist
 
 import (
 	"context"

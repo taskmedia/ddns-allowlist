@@ -1,4 +1,6 @@
-package ddnswhitelist
+//revive:disable-next-line:var-naming
+//nolint:stylecheck
+package ddns_whitelist
 
 import (
 	"context"
