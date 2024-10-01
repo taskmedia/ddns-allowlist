@@ -22,12 +22,14 @@ const (
 var (
 	errNoHostListProvided = errors.New("no host list provided")
 	errEmptyIPAddress     = errors.New("empty IP address")
-	errParseIPAddress     = errors.New("could not parse IP address")
+	errParseIPAddress     = errors.New("could not parse IP address after DNS resolution")
+	errParseIPListAddress = errors.New("could not parse IP address from ipList")
 )
 
 // Config the plugin configuration.
 type Config struct {
 	HostList []string `json:"hostList,omitempty"` // Add hosts to whitelist
+	IpList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to whitelist
 }
 
 type allowedIps []*net.IP
@@ -36,6 +38,7 @@ type allowedIps []*net.IP
 func CreateConfig() *Config {
 	return &Config{
 		HostList: []string{},
+		IpList:   []string{},
 	}
 }
 
@@ -68,7 +71,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
-	aIps, err := newAllowedIps(a.config.HostList)
+	aIps, err := newAllowedIps(a.config.HostList, a.config.IpList)
 	if err != nil {
 		logger.Errorf("could not look up ip address: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -144,8 +147,17 @@ func (a *ddnswhitelist) GetRemoteIP(req *http.Request) []string {
 	return ipList
 }
 
-func newAllowedIps(hosts []string) (*allowedIps, error) {
+func newAllowedIps(hosts, ips []string) (*allowedIps, error) {
 	aIps := &allowedIps{}
+
+	for _, ip := range ips {
+		ipAddr := net.ParseIP(ip)
+		if ipAddr == nil {
+			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
+		}
+
+		*aIps = append(*aIps, &ipAddr)
+	}
 
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
