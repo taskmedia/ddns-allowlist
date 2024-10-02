@@ -16,6 +16,7 @@ import (
 const (
 	typeName      = "ddns-whitelist"
 	xForwardedFor = "X-Forwarded-For"
+	cloudflareIP  = "Cf-Connecting-Ip"
 )
 
 // Define static error variable.
@@ -78,7 +79,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	reqIPAddr := a.GetRemoteIP(req)
+	reqIPAddr := getRemoteIP(req)
 	reqIPAddrLenOffset := len(reqIPAddr) - 1
 
 	for i := reqIPAddrLenOffset; i >= 0; i-- {
@@ -115,19 +116,25 @@ func (a *allowedIps) contains(ipString string) (bool, error) {
 	return false, nil
 }
 
-// GetRemoteIP returns a list of IPs that are associated with this request
+// getRemoteIP returns a list of IPs that are associated with this request
 // from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
-func (a *ddnswhitelist) GetRemoteIP(req *http.Request) []string {
+func getRemoteIP(req *http.Request) []string {
 	var ipList []string
+	var headerIPs []string
 
 	xff := req.Header.Get(xForwardedFor)
 	xffs := strings.Split(xff, ",")
+	headerIPs = append(headerIPs, xffs...)
 
-	for i := len(xffs) - 1; i >= 0; i-- {
-		xffsTrim := strings.TrimSpace(xffs[i])
+	ccip := req.Header.Get(cloudflareIP)
+	ccips := strings.Split(ccip, ",")
+	headerIPs = append(headerIPs, ccips...)
 
-		if len(xffsTrim) > 0 {
-			ipList = append(ipList, xffsTrim)
+	for i := len(headerIPs) - 1; i >= 0; i-- {
+		headerIPsTrim := strings.TrimSpace(headerIPs[i])
+
+		if len(headerIPsTrim) > 0 {
+			ipList = append(ipList, headerIPsTrim)
 		}
 	}
 
