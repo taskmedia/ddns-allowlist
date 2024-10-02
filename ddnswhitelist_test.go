@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -144,4 +145,44 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 			assert.Equal(t, test.expected, rec.Code)
 		})
 	}
+}
+
+func TestGetRemoteIP(t *testing.T) {
+	// Test function getRemoteIP()
+
+	testCases := []struct {
+		desc     string
+		req      *http.Request
+		expected []string
+	}{
+		{
+			desc: "valid remote address",
+			req: &http.Request{
+				RemoteAddr: "1.1.1.1",
+			},
+			expected: []string{"1.1.1.1"},
+		},
+		{
+			desc: "xForwardedFor address",
+			req: &http.Request{
+				RemoteAddr: "1.1.1.1",
+				Header: map[string][]string{
+					"X-Forwarded-For": {"2.2.2.2"},
+				},
+			},
+			expected: []string{"1.1.1.1", "2.2.2.2"},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			ips := getRemoteIP(test.req)
+			sort.Strings(ips)
+
+			assert.Equal(t, test.expected, ips)
+		})
+	}
+
 }
