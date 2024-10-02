@@ -78,7 +78,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	reqIPAddr := a.GetRemoteIP(req)
+	reqIPAddr := a.getRemoteIP(req)
 	reqIPAddrLenOffset := len(reqIPAddr) - 1
 
 	for i := reqIPAddrLenOffset; i >= 0; i-- {
@@ -115,9 +115,9 @@ func (a *allowedIps) contains(ipString string) (bool, error) {
 	return false, nil
 }
 
-// GetRemoteIP returns a list of IPs that are associated with this request
+// getRemoteIP returns a list of IPs that are associated with this request
 // from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
-func (a *ddnswhitelist) GetRemoteIP(req *http.Request) []string {
+func (a *ddnswhitelist) getRemoteIP(req *http.Request) []string {
 	var ipList []string
 
 	xff := req.Header.Get(xForwardedFor)
