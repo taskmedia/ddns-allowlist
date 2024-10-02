@@ -179,6 +179,16 @@ func TestGetRemoteIP(t *testing.T) {
 			},
 			expected: []string{"1.1.1.1", "2.2.2.2"},
 		},
+		{
+			desc: "multiple xForwardedFor address",
+			req: &http.Request{
+				RemoteAddr: "1.1.1.1",
+				Header: map[string][]string{
+					"X-Forwarded-For": {"2.2.2.2, 3.3.3.3"},
+				},
+			},
+			expected: []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+		},
 	}
 
 	for _, test := range testCases {
