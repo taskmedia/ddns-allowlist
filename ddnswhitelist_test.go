@@ -163,6 +163,13 @@ func TestGetRemoteIP(t *testing.T) {
 			expected: []string{"1.1.1.1"},
 		},
 		{
+			desc: "valid remote address with port",
+			req: &http.Request{
+				RemoteAddr: "1.1.1.1:8080",
+			},
+			expected: []string{"1.1.1.1"},
+		},
+		{
 			desc: "xForwardedFor address",
 			req: &http.Request{
 				RemoteAddr: "1.1.1.1",
@@ -184,5 +191,4 @@ func TestGetRemoteIP(t *testing.T) {
 			assert.Equal(t, test.expected, ips)
 		})
 	}
-
 }
