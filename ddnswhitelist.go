@@ -74,7 +74,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	aIps, err := newAllowedIps(a.config.HostList, a.config.IPList)
 	if err != nil {
 		logger.Errorf("could not look up ip address: %v", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+		reject(http.StatusInternalServerError, rw, logger)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		if !isAllowed {
 			logger.Infof("request denied [%s]", reqIPAddr[i])
-			rw.WriteHeader(http.StatusForbidden)
+			reject(http.StatusForbidden, rw, logger)
 			return
 		}
 	}
@@ -172,4 +172,12 @@ func newAllowedIps(hosts, ips []string) (*allowedIps, error) {
 	}
 
 	return aIps, nil
+}
+
+func reject(statusCode int, rw http.ResponseWriter, l *Logger) {
+	rw.WriteHeader(statusCode)
+	_, err := rw.Write([]byte(http.StatusText(statusCode)))
+	if err != nil {
+		l.Errorf("could not write response: %v", err)
+	}
 }
