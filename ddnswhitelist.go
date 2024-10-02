@@ -120,14 +120,15 @@ func (a *allowedIps) contains(ipString string) (bool, error) {
 // from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
 func getRemoteIP(req *http.Request) []string {
 	var ipList []string
+	var headerIPs []string
 
 	xff := req.Header.Get(xForwardedFor)
 	xffs := strings.Split(xff, ",")
+	headerIPs = append(headerIPs, xffs...)
 
 	ccip := req.Header.Get(cloudflareIP)
 	ccips := strings.Split(ccip, ",")
-
-	headerIPs := append(xffs, ccips...)
+	headerIPs = append(headerIPs, ccips...)
 
 	for i := len(headerIPs) - 1; i >= 0; i-- {
 		headerIPsTrim := strings.TrimSpace(headerIPs[i])
