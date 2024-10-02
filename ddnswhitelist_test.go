@@ -189,6 +189,16 @@ func TestGetRemoteIP(t *testing.T) {
 			},
 			expected: []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
 		},
+		{
+			desc: "cloudflare address",
+			req: &http.Request{
+				RemoteAddr: "1.1.1.1",
+				Header: map[string][]string{
+					"Cf-Connecting-Ip": {"2.2.2.2"},
+				},
+			},
+			expected: []string{"1.1.1.1", "2.2.2.2"},
+		},
 	}
 
 	for _, test := range testCases {

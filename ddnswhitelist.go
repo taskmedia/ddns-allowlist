@@ -16,6 +16,7 @@ import (
 const (
 	typeName      = "ddns-whitelist"
 	xForwardedFor = "X-Forwarded-For"
+	cloudflareIP  = "Cf-Connecting-Ip"
 )
 
 // Define static error variable.
@@ -123,11 +124,16 @@ func getRemoteIP(req *http.Request) []string {
 	xff := req.Header.Get(xForwardedFor)
 	xffs := strings.Split(xff, ",")
 
-	for i := len(xffs) - 1; i >= 0; i-- {
-		xffsTrim := strings.TrimSpace(xffs[i])
+	ccip := req.Header.Get(cloudflareIP)
+	ccips := strings.Split(ccip, ",")
 
-		if len(xffsTrim) > 0 {
-			ipList = append(ipList, xffsTrim)
+	headerIPs := append(xffs, ccips...)
+
+	for i := len(headerIPs) - 1; i >= 0; i-- {
+		headerIPsTrim := strings.TrimSpace(headerIPs[i])
+
+		if len(headerIPsTrim) > 0 {
+			ipList = append(ipList, headerIPsTrim)
 		}
 	}
 
