@@ -35,7 +35,7 @@ type Logger struct {
 
 // newLogger is used to log messages with context in Traefik log format.
 func newLogger(_logLevel, middleware, middlewareType string) *Logger {
-	logLevel := strings.ToLower(_logLevel)
+	logLevel := strings.TrimSpace(strings.ToLower(_logLevel))
 	// This globally sets the flags for the standard logger which is generally
 	// a bad practice, however, since Traefik is capturing the output of the
 	// logger and redirecting it to its own logger, this is the only way to
@@ -73,18 +73,25 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 	noopLog := func(_ ...interface{}) {}
 	noopLogf := func(_ string, _ ...interface{}) {}
 
+	// warning: yaegi interprets switch not as go (default, fallthrough)
 	switch logLevel {
-	default:
 	case "error":
-		logger._debug = noopLog
-		logger._debugf = noopLogf
+		// disable info logging
 		logger._info = noopLog
 		logger._infof = noopLogf
+		fallthrough
 	case "info":
+		// disable debug logging
 		logger._debug = noopLog
 		logger._debugf = noopLogf
+		fallthrough
 	case "debug":
-		break
+
+	default:
+		logger._info = noopLog
+		logger._infof = noopLogf
+		logger._debug = noopLog
+		logger._debugf = noopLogf
 	}
 
 	return logger
