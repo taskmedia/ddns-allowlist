@@ -70,28 +70,29 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 		},
 	}
 
-	noopLog := func(_ ...interface{}) {}
-	noopLogf := func(_ string, _ ...interface{}) {}
+	disableLog := func(_ ...interface{}) {}
+	disableLogf := func(_ string, _ ...interface{}) {}
 
 	// warning: yaegi interprets switch not as go (default, fallthrough)
 	switch logLevel {
 	case "error":
 		// disable info logging
-		logger._info = noopLog
-		logger._infof = noopLogf
+		logger._info = disableLog
+		logger._infof = disableLogf
 		fallthrough
 	case "info":
 		// disable debug logging
-		logger._debug = noopLog
-		logger._debugf = noopLogf
+		logger._debug = disableLog
+		logger._debugf = disableLogf
 		fallthrough
 	case "debug":
-
+		// nothing disabled for most detailed logging
 	default:
-		logger._info = noopLog
-		logger._infof = noopLogf
-		logger._debug = noopLog
-		logger._debugf = noopLogf
+		// disable all logging except error
+		logger._info = disableLog
+		logger._infof = disableLogf
+		logger._debug = disableLog
+		logger._debugf = disableLogf
 	}
 
 	return logger
