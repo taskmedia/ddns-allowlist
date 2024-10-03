@@ -16,12 +16,10 @@ import (
 )
 
 const (
-	// prefixDebug = "DBG"
 	prefixInfo = colorGreen + "INF" + colorReset
 	colorReset = "\033[0m"
 	colorGray  = "\033[90m"
 	colorGreen = "\033[32m"
-	// prefixError = "ERR"
 )
 
 // Logger will log messages with context.
