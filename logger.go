@@ -1,6 +1,8 @@
 // Package ddns_whitelist usesthis implementation to log messages
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 //
+// Hint: does not support other log formats (e.g. json) than the default common
+//
 //revive:disable-next-line:var-naming
 //nolint:stylecheck
 package ddns_whitelist
@@ -8,7 +10,15 @@ package ddns_whitelist
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
+	"time"
+)
+
+const (
+	// prefixDebug = "DBG"
+	prefixInfo = "INF"
+	// prefixError = "ERR"
 )
 
 // Logger will log messages with context.
@@ -37,7 +47,8 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 			fmt.Println(args...)
 		},
 		_info: func(args ...interface{}) {
-			fmt.Println(args...)
+			prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, ">"}, args...)
+			log.New(os.Stdout, "", 0).Println(prefixArgs...)
 		},
 		_error: func(args ...interface{}) {
 			log.Println(args...)
@@ -46,7 +57,8 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 			fmt.Printf(format+"\n", args...)
 		},
 		_infof: func(format string, args ...interface{}) {
-			fmt.Printf(format+"\n", args...)
+			f := getTimestamp() + " " + prefixInfo + " > " + format
+			log.New(os.Stdout, "", 0).Printf(f, args...)
 		},
 		_errorf: func(format string, args ...interface{}) {
 			log.Printf(format+"\n", args...)
@@ -75,6 +87,10 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 	}
 
 	return logger
+}
+
+func getTimestamp() string {
+	return time.Now().Format(time.RFC3339)
 }
 
 func (l *Logger) logWithContext(logFunc func(args ...interface{}), args ...interface{}) {
