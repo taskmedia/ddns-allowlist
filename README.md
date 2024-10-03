@@ -12,7 +12,7 @@ This is not limited to your DDNS supporting router - you can add any host.
 It is more an hostname allowlist which will do a DNS lookup.
 Because server typically have a static IP, you should add its static IPs to the allowlist.
 
-The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fbe453573cd7803d65cb10/ddns-allowlist).
+The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fef7d4573cd7803d65cb12/ddns-allowlist).
 
 ## Installation
 
