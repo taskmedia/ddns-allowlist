@@ -35,6 +35,7 @@ type Config struct {
 }
 
 type allowedIps []*net.IP
+type requestIps []*net.IP
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
@@ -104,7 +105,7 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Debugf("request IP addresses: %v", reqIPs)
 
 	for _, reqIP := range reqIPs {
-		isAllowed := allowedIPs.contains(reqIP)
+		isAllowed := allowedIPs.contains(*reqIP)
 
 		if !isAllowed {
 			log.Infof("request denied from %s, allowList: [%s]", reqIPs, allowedIPs.String())
@@ -130,8 +131,8 @@ func parseIPList(ips []string) (allowedIps, error) {
 	return aIPs, nil
 }
 
-func (a *allowedIps) contains(ip net.IP) bool {
-	for _, aIP := range *a {
+func (a allowedIps) contains(ip net.IP) bool {
+	for _, aIP := range a {
 		if aIP.Equal(ip) {
 			return true
 		}
@@ -140,8 +141,8 @@ func (a *allowedIps) contains(ip net.IP) bool {
 }
 
 // getRemoteIP returns a list of IPs that are associated with this request.
-func getRequestIPs(req *http.Request) []net.IP {
-	var ips []net.IP
+func getRequestIPs(req *http.Request) requestIps {
+	var ips requestIps
 
 	extractAndAppendHeaderIPs(xForwardedFor, req, &ips)
 	extractAndAppendHeaderIPs(cloudflareIP, req, &ips)
@@ -150,18 +151,18 @@ func getRequestIPs(req *http.Request) []net.IP {
 	return ips
 }
 
-func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *[]net.IP) {
+func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *requestIps) {
 	hIP := req.Header.Get(header)
 	hIPs := strings.Split(hIP, ",")
 	for _, ipString := range hIPs {
 		ip := net.ParseIP(strings.TrimSpace(ipString))
 		if ip != nil {
-			*ipList = append(*ipList, ip)
+			*ipList = append(*ipList, &ip)
 		}
 	}
 }
 
-func extractAndAppendRemoteIP(remoteAddr string, ipList *[]net.IP) {
+func extractAndAppendRemoteIP(remoteAddr string, ipList *requestIps) {
 	ipstr, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		ipstr = remoteAddr
@@ -169,7 +170,7 @@ func extractAndAppendRemoteIP(remoteAddr string, ipList *[]net.IP) {
 
 	ip := net.ParseIP(ipstr)
 	if ip != nil {
-		*ipList = append(*ipList, ip)
+		*ipList = append(*ipList, &ip)
 	}
 }
 
