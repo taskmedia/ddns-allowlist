@@ -1,10 +1,16 @@
 # DDNS allowlist - Traefik plugin
 
-Dynamic DNS allowlist plugin for Traefik.
+Dynamic DNS allowlist plugin for Traefik: Add your dynamic hostname (your homenetwork router) to the allow list
 
 ## About
 
-The `ddns-allowlist` plugin for Traefik allows you to allowlist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
+The `ddns-allowlist` plugin for Traefik allows you to add dynamic DNS (DDNS) hosts to the allowed requesters.
+Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
+
+This idea was created to add your router with a floating ips to an allowlist.
+This is not limited to your DDNS supporting router - you can add any host.
+It is more an hostname allowlist which will do a DNS lookup.
+Because server typically have a static IP, you should add its static IPs to the allowlist.
 
 The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fbe453573cd7803d65cb10/ddns-allowlist).
 
