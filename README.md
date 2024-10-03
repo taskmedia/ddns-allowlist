@@ -53,9 +53,12 @@ http:
     ddns-allowlist-router:
       plugin:
         ddns-allowlist:
+          # optional: log level for the plugin (allowed: ERROR, INFO, DEBUG)
           logLevel: ERROR
-          hostList: # hosts to dynamically allowlist via DNS lookup
+          # hosts to dynamically add to allowlist via DNS lookup
+          hostList:
             - my.router.ddns.tld
-          ipList: # optional IP addresses to allowlist
+          # optional: IP addresses to allowlist
+          ipList:
             - 1.2.3.4
 ```
