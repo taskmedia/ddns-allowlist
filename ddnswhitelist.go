@@ -29,6 +29,7 @@ var (
 
 // Config the plugin configuration.
 type Config struct {
+	LogLevel string   `json:"logLevel,omitempty"` // Log level (DEBUG, INFO, ERROR)
 	HostList []string `json:"hostList,omitempty"` // Add hosts to whitelist
 	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to whitelist
 }
@@ -53,7 +54,7 @@ type ddnswhitelist struct {
 
 // New created a new DDNSwhitelist plugin.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	log := newLogger("debug", name, typeName)
+	log := newLogger(config.LogLevel, name, typeName)
 	log.Debug("Creating middleware")
 
 	if len(config.HostList) == 0 {
