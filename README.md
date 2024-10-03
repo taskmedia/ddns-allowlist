@@ -47,6 +47,7 @@ http:
     ddns-whitelist-router:
       plugin:
         ddns-whitelist:
+          logLevel: ERROR
           hostList: # hosts to dynamically whitelist via DNS lookup
             - my.router.ddns.tld
           ipList: # optional IP addresses to whitelist
