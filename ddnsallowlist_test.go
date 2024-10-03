@@ -215,10 +215,14 @@ func TestGetRemoteIP(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			ips := getRemoteIP(test.req)
-			sort.Strings(ips)
+			ips := getRequestIPs(test.req)
+			var ipsStr []string
+			for _, ip := range ips {
+				ipsStr = append(ipsStr, ip.String())
+			}
+			sort.Strings(ipsStr)
 
-			assert.Equal(t, test.expected, ips)
+			assert.Equal(t, test.expected, ipsStr)
 		})
 	}
 }

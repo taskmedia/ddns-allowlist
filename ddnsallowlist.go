@@ -22,7 +22,7 @@ const (
 // Define static error variable.
 var (
 	errNoHostListProvided = errors.New("no host list provided")
-	errEmptyIPAddress     = errors.New("empty IP address")
+	errNoRequestIP        = errors.New("could not find required IP address")
 	errParseIPAddress     = errors.New("could not parse IP address after DNS resolution")
 	errParseIPListAddress = errors.New("could not parse IP address from ipList")
 )
@@ -34,7 +34,10 @@ type Config struct {
 	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to allowlist
 }
 
-type allowedIps []*net.IP
+type (
+	allowedIPs []net.IP
+	requestIPs []net.IP
+)
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
@@ -73,7 +76,7 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log := a.logger
 
-	var allowedIPs allowedIps
+	var aIPs allowedIPs
 
 	// Add allowed IPs from config
 	ipAllowlist, err := parseIPList(a.config.IPList)
@@ -82,7 +85,7 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		reject(http.StatusInternalServerError, rw, log)
 		return
 	}
-	allowedIPs = append(allowedIPs, ipAllowlist...)
+	aIPs = append(aIPs, ipAllowlist...)
 
 	// Add allowed hosts IPs from config
 	// TODO: this might be scheduled and not requested on every request
@@ -92,121 +95,102 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		reject(http.StatusInternalServerError, rw, log)
 		return
 	}
-	allowedIPs = append(allowedIPs, ipHostlist...)
+	aIPs = append(aIPs, ipHostlist...)
+	log.Debugf("allowed IPs: [%s]", aIPs.String())
 
-	log.Debugf("allowed IPs: [%s]", allowedIPs.String())
-
-	reqIPs := getRemoteIP(req)
+	reqIPs := getRequestIPs(req)
+	if len(reqIPs) == 0 {
+		log.Error(errNoRequestIP)
+		reject(http.StatusForbidden, rw, log)
+		return
+	}
 	log.Debugf("request IP addresses: %v", reqIPs)
 
 	for _, reqIP := range reqIPs {
-		isAllowed, err := allowedIPs.contains(reqIP)
-		if err != nil {
-			log.Errorf("%v", err)
-		}
+		isAllowed := aIPs.contains(reqIP)
 
 		if !isAllowed {
-			log.Infof("request denied from %s, allowList: [%s]", reqIPs, allowedIPs.String())
+			log.Infof("request denied from %s, allowList: [%s]", reqIPs, aIPs.String())
 			reject(http.StatusForbidden, rw, log)
 			return
 		}
 	}
-	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, allowedIPs.String())
+	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, aIPs.String())
 	a.next.ServeHTTP(rw, req)
 }
 
 // parseIPList returns a list of IP addresses parsed from a string list.
-func parseIPList(ips []string) (allowedIps, error) {
-	aIPs := make(allowedIps, 0, len(ips))
+func parseIPList(ips []string) (allowedIPs, error) {
+	aIPs := make(allowedIPs, 0, len(ips))
 
 	for _, ip := range ips {
 		ipAddr := net.ParseIP(ip)
 		if ipAddr == nil {
 			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
 		}
-		aIPs = append(aIPs, &ipAddr)
+		aIPs = append(aIPs, ipAddr)
 	}
 	return aIPs, nil
 }
 
-func (a *allowedIps) contains(ipString string) (bool, error) {
-	if len(ipString) == 0 {
-		return false, errEmptyIPAddress
-	}
-
-	ipAddr := net.ParseIP(ipString)
-	if ipAddr == nil {
-		return false, fmt.Errorf("%w: %s", errParseIPAddress, ipAddr.String())
-	}
-
-	for _, ip := range *a {
-		if ip.Equal(ipAddr) {
-			return true, nil
+func (a allowedIPs) contains(ip net.IP) bool {
+	for _, aIP := range a {
+		if aIP.Equal(ip) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
-// getRemoteIP returns a list of IPs that are associated with this request
-// from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
-func getRemoteIP(req *http.Request) []string {
-	var ipList []string
-	var headerIPs []string
+// getRemoteIP returns a list of IPs that are associated with this request.
+func getRequestIPs(req *http.Request) requestIPs {
+	var ips requestIPs
 
-	// get IP from header xForwardedFor
-	xff := req.Header.Get(xForwardedFor)
-	xffs := strings.Split(xff, ",")
-	headerIPs = append(headerIPs, xffs...)
+	extractAndAppendHeaderIPs(xForwardedFor, req, &ips)
+	extractAndAppendHeaderIPs(cloudflareIP, req, &ips)
+	extractAndAppendRemoteIP(req.RemoteAddr, &ips)
 
-	// get IP from header cloudflareIP
-	ccip := req.Header.Get(cloudflareIP)
-	ccips := strings.Split(ccip, ",")
-	headerIPs = append(headerIPs, ccips...)
+	return ips
+}
 
-	// trip header IP addresses and append to ipList
-	for _, hIP := range headerIPs {
-		headerIPTrim := strings.TrimSpace(hIP)
-
-		if len(headerIPTrim) > 0 {
-			ipList = append(ipList, headerIPTrim)
+func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *requestIPs) {
+	hIP := req.Header.Get(header)
+	hIPs := strings.Split(hIP, ",")
+	for _, ipString := range hIPs {
+		ip := net.ParseIP(strings.TrimSpace(ipString))
+		if ip != nil {
+			*ipList = append(*ipList, ip)
 		}
 	}
-
-	// get IP from remoteAddr and append to ipList
-	ipList = extractAndAppendIP(req.RemoteAddr, ipList)
-
-	return ipList
 }
 
-func extractAndAppendIP(remoteAddr string, ipList []string) []string {
-	ip, _, err := net.SplitHostPort(remoteAddr)
+func extractAndAppendRemoteIP(remoteAddr string, ipList *requestIPs) {
+	ipstr, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
-		ip = remoteAddr
+		ipstr = remoteAddr
 	}
 
-	ipTrim := strings.TrimSpace(ip)
-	if len(ipTrim) > 0 {
-		ipList = append(ipList, ipTrim)
+	ip := net.ParseIP(ipstr)
+	if ip != nil {
+		*ipList = append(*ipList, ip)
 	}
-	return ipList
 }
 
-func resolveHostlist(hosts []string) (allowedIps, error) {
-	aIps := &allowedIps{}
+func resolveHostlist(hosts []string) (allowedIPs, error) {
+	aIps := allowedIPs{}
 
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", errParseIPAddress, err)
 		}
 
 		for _, i := range ip {
-			iCopy := i
-			*aIps = append(*aIps, &iCopy)
+			aIps = append(aIps, i)
 		}
 	}
 
-	return *aIps, nil
+	return aIps, nil
 }
 
 func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
@@ -217,9 +201,9 @@ func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
 	}
 }
 
-func (a *allowedIps) String() string {
+func (a allowedIPs) String() string {
 	var builder strings.Builder
-	for i, ip := range *a {
+	for i, ip := range a {
 		if i > 0 {
 			builder.WriteString(",")
 		}
