@@ -48,12 +48,13 @@ type ddnswhitelist struct {
 	config *Config
 	name   string
 	next   http.Handler
+	logger *Logger
 }
 
 // New created a new DDNSwhitelist plugin.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	logger := newLogger("info", name, typeName)
-	logger.Debug("Creating middleware")
+	log := newLogger("debug", name, typeName)
+	log.Debug("Creating middleware")
 
 	if len(config.HostList) == 0 {
 		return nil, errNoHostListProvided
@@ -63,19 +64,20 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 		name:   name,
 		next:   next,
 		config: config,
+		logger: log,
 	}, nil
 }
 
 // ServeHTTP ddnswhitelist.
 func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	logger := newLogger("info", a.name, typeName)
+	log := a.logger
 
 	// TODO: this might be scheduled and not requested on every request
 	// get list of allowed IPs
 	aIps, err := newAllowedIps(a.config.HostList, a.config.IPList)
 	if err != nil {
-		logger.Errorf("could not look up ip address: %v", err)
-		reject(http.StatusInternalServerError, rw, logger)
+		log.Errorf("could not look up ip address: %v", err)
+		reject(http.StatusInternalServerError, rw, log)
 		return
 	}
 
@@ -85,12 +87,12 @@ func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for i := reqIPAddrLenOffset; i >= 0; i-- {
 		isAllowed, err := aIps.contains(reqIPAddr[i])
 		if err != nil {
-			logger.Errorf("%v", err)
+			log.Errorf("%v", err)
 		}
 
 		if !isAllowed {
-			logger.Infof("request denied [%s]", reqIPAddr[i])
-			reject(http.StatusForbidden, rw, logger)
+			log.Infof("request denied [%s]", reqIPAddr[i])
+			reject(http.StatusForbidden, rw, log)
 			return
 		}
 	}
@@ -181,10 +183,10 @@ func newAllowedIps(hosts, ips []string) (*allowedIps, error) {
 	return aIps, nil
 }
 
-func reject(statusCode int, rw http.ResponseWriter, l *Logger) {
+func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
 	rw.WriteHeader(statusCode)
 	_, err := rw.Write([]byte(http.StatusText(statusCode)))
 	if err != nil {
-		l.Errorf("could not write response: %v", err)
+		log.Errorf("could not write response: %v", err)
 	}
 }
