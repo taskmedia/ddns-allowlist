@@ -1,4 +1,4 @@
-module github.com/taskmedia/ddns-whitelist
+module github.com/taskmedia/ddns-allowlist
 
 go 1.23.1
 

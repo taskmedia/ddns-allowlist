@@ -1,10 +1,10 @@
-displayName: DDNS whitelist
+displayName: DDNS allowlist
 type: middleware
 iconPath: .assets/logo.png
 
-import: github.com/taskmedia/ddns-whitelist
+import: github.com/taskmedia/ddns-allowlist
 
-summary: 'A middleware that allows you to whitelist on a dynamic DNS'
+summary: 'A middleware that allows you to allowlist on a dynamic DNS'
 
 testData:
   logLevel: ERROR

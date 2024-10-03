@@ -1,11 +1,11 @@
-// Package ddns_whitelist usesthis implementation to log messages
+// Package ddns_allowlist usesthis implementation to log messages
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 //
 // Hint: does not support other log formats (e.g. json) than the default common
 //
 //revive:disable-next-line:var-naming
 //nolint:stylecheck
-package ddns_whitelist
+package ddns_allowlist
 
 import (
 	"fmt"
