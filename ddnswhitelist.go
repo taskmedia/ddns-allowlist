@@ -73,32 +73,60 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log := a.logger
 
-	// TODO: this might be scheduled and not requested on every request
-	// get list of allowed IPs
-	aIps, err := newAllowedIps(a.config.HostList, a.config.IPList)
+	var allowedIPs allowedIps
+
+	// Add allowed IPs from config
+	ipAllowlist, err := parseIPList(a.config.IPList)
 	if err != nil {
-		log.Errorf("could not look up ip address: %v", err)
+		log.Error(err)
 		reject(http.StatusInternalServerError, rw, log)
 		return
 	}
+	allowedIPs = append(allowedIPs, ipAllowlist...)
 
-	reqIPAddr := getRemoteIP(req)
-	reqIPAddrLenOffset := len(reqIPAddr) - 1
+	// Add allowed hosts IPs from config
+	// TODO: this might be scheduled and not requested on every request
+	ipHostlist, err := resolveHostlist(a.config.HostList)
+	if err != nil {
+		log.Error(err)
+		reject(http.StatusInternalServerError, rw, log)
+		return
+	}
+	allowedIPs = append(allowedIPs, ipHostlist...)
 
-	for i := reqIPAddrLenOffset; i >= 0; i-- {
-		isAllowed, err := aIps.contains(reqIPAddr[i])
+	log.Debugf("allowed IPs: [%s]", allowedIPs.String())
+
+	reqIPs := getRemoteIP(req)
+	log.Debugf("request IP addresses: %v", reqIPs)
+
+	for _, reqIP := range reqIPs {
+		isAllowed, err := allowedIPs.contains(reqIP)
 		if err != nil {
 			log.Errorf("%v", err)
 		}
 
 		if !isAllowed {
-			log.Infof("request denied [%s]", reqIPAddr[i])
+			log.Infof("request denied from %s, allowList: [%s]", reqIPs, allowedIPs.String())
 			reject(http.StatusForbidden, rw, log)
 			return
 		}
 	}
-
+	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, allowedIPs.String())
 	a.next.ServeHTTP(rw, req)
+}
+
+// parseIPList returns a list of IP addresses parsed from a string list.
+func parseIPList(ips []string) (allowedIps, error) {
+	aIPs := make(allowedIps, 0, len(ips))
+
+	for _, ip := range ips {
+		ipAddr := net.ParseIP(ip)
+		if ipAddr == nil {
+			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
+		}
+		aIPs = append(aIPs, &ipAddr)
+	}
+	return aIPs, nil
 }
 
 func (a *allowedIps) contains(ipString string) (bool, error) {
@@ -125,22 +153,26 @@ func getRemoteIP(req *http.Request) []string {
 	var ipList []string
 	var headerIPs []string
 
+	// get IP from header xForwardedFor
 	xff := req.Header.Get(xForwardedFor)
 	xffs := strings.Split(xff, ",")
 	headerIPs = append(headerIPs, xffs...)
 
+	// get IP from header cloudflareIP
 	ccip := req.Header.Get(cloudflareIP)
 	ccips := strings.Split(ccip, ",")
 	headerIPs = append(headerIPs, ccips...)
 
-	for i := len(headerIPs) - 1; i >= 0; i-- {
-		headerIPsTrim := strings.TrimSpace(headerIPs[i])
+	// trip header IP addresses and append to ipList
+	for _, hIP := range headerIPs {
+		headerIPTrim := strings.TrimSpace(hIP)
 
-		if len(headerIPsTrim) > 0 {
-			ipList = append(ipList, headerIPsTrim)
+		if len(headerIPTrim) > 0 {
+			ipList = append(ipList, headerIPTrim)
 		}
 	}
 
+	// get IP from remoteAddr and append to ipList
 	ipList = extractAndAppendIP(req.RemoteAddr, ipList)
 
 	return ipList
@@ -159,17 +191,8 @@ func extractAndAppendIP(remoteAddr string, ipList []string) []string {
 	return ipList
 }
 
-func newAllowedIps(hosts, ips []string) (*allowedIps, error) {
+func resolveHostlist(hosts []string) (allowedIps, error) {
 	aIps := &allowedIps{}
-
-	for _, ip := range ips {
-		ipAddr := net.ParseIP(ip)
-		if ipAddr == nil {
-			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
-		}
-
-		*aIps = append(*aIps, &ipAddr)
-	}
 
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
@@ -183,7 +206,7 @@ func newAllowedIps(hosts, ips []string) (*allowedIps, error) {
 		}
 	}
 
-	return aIps, nil
+	return *aIps, nil
 }
 
 func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
