@@ -17,7 +17,10 @@ import (
 
 const (
 	// prefixDebug = "DBG"
-	prefixInfo = "INF"
+	prefixInfo = colorGreen + "INF" + colorReset
+	colorReset = "\033[0m"
+	colorGray  = "\033[90m"
+	colorGreen = "\033[32m"
 	// prefixError = "ERR"
 )
 
@@ -90,7 +93,7 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 }
 
 func getTimestamp() string {
-	return time.Now().Format(time.RFC3339)
+	return colorGray + time.Now().Format(time.RFC3339) + colorReset
 }
 
 func (l *Logger) logWithContext(logFunc func(args ...interface{}), args ...interface{}) {
