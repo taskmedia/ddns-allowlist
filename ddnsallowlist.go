@@ -34,8 +34,8 @@ type Config struct {
 	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to allowlist
 }
 
-type allowedIps []*net.IP
-type requestIps []*net.IP
+type allowedIps []net.IP
+type requestIps []net.IP
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
@@ -105,7 +105,7 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Debugf("request IP addresses: %v", reqIPs)
 
 	for _, reqIP := range reqIPs {
-		isAllowed := allowedIPs.contains(*reqIP)
+		isAllowed := allowedIPs.contains(reqIP)
 
 		if !isAllowed {
 			log.Infof("request denied from %s, allowList: [%s]", reqIPs, allowedIPs.String())
@@ -126,7 +126,7 @@ func parseIPList(ips []string) (allowedIps, error) {
 		if ipAddr == nil {
 			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
 		}
-		aIPs = append(aIPs, &ipAddr)
+		aIPs = append(aIPs, ipAddr)
 	}
 	return aIPs, nil
 }
@@ -157,7 +157,7 @@ func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *request
 	for _, ipString := range hIPs {
 		ip := net.ParseIP(strings.TrimSpace(ipString))
 		if ip != nil {
-			*ipList = append(*ipList, &ip)
+			*ipList = append(*ipList, ip)
 		}
 	}
 }
@@ -170,12 +170,12 @@ func extractAndAppendRemoteIP(remoteAddr string, ipList *requestIps) {
 
 	ip := net.ParseIP(ipstr)
 	if ip != nil {
-		*ipList = append(*ipList, &ip)
+		*ipList = append(*ipList, ip)
 	}
 }
 
 func resolveHostlist(hosts []string) (allowedIps, error) {
-	aIps := &allowedIps{}
+	aIps := allowedIps{}
 
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
@@ -184,12 +184,11 @@ func resolveHostlist(hosts []string) (allowedIps, error) {
 		}
 
 		for _, i := range ip {
-			iCopy := i
-			*aIps = append(*aIps, &iCopy)
+			aIps = append(aIps, i)
 		}
 	}
 
-	return *aIps, nil
+	return aIps, nil
 }
 
 func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
@@ -200,9 +199,9 @@ func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
 	}
 }
 
-func (a *allowedIps) String() string {
+func (a allowedIps) String() string {
 	var builder strings.Builder
-	for i, ip := range *a {
+	for i, ip := range a {
 		if i > 0 {
 			builder.WriteString(",")
 		}
