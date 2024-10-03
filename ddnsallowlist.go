@@ -22,7 +22,7 @@ const (
 // Define static error variable.
 var (
 	errNoHostListProvided = errors.New("no host list provided")
-	errEmptyIPAddress     = errors.New("empty IP address")
+	errNoRequestIP        = errors.New("could not find required IP address")
 	errParseIPAddress     = errors.New("could not parse IP address after DNS resolution")
 	errParseIPListAddress = errors.New("could not parse IP address from ipList")
 )
@@ -93,17 +93,18 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	allowedIPs = append(allowedIPs, ipHostlist...)
-
 	log.Debugf("allowed IPs: [%s]", allowedIPs.String())
 
-	reqIPs := getRemoteIP(req)
+	reqIPs := getRequestIPs(req)
+	if len(reqIPs) == 0 {
+		log.Error(errNoRequestIP)
+		reject(http.StatusForbidden, rw, log)
+		return
+	}
 	log.Debugf("request IP addresses: %v", reqIPs)
 
 	for _, reqIP := range reqIPs {
-		isAllowed, err := allowedIPs.contains(reqIP)
-		if err != nil {
-			log.Errorf("%v", err)
-		}
+		isAllowed := allowedIPs.contains(reqIP)
 
 		if !isAllowed {
 			log.Infof("request denied from %s, allowList: [%s]", reqIPs, allowedIPs.String())
@@ -129,66 +130,47 @@ func parseIPList(ips []string) (allowedIps, error) {
 	return aIPs, nil
 }
 
-func (a *allowedIps) contains(ipString string) (bool, error) {
-	if len(ipString) == 0 {
-		return false, errEmptyIPAddress
-	}
-
-	ipAddr := net.ParseIP(ipString)
-	if ipAddr == nil {
-		return false, fmt.Errorf("%w: %s", errParseIPAddress, ipAddr.String())
-	}
-
-	for _, ip := range *a {
-		if ip.Equal(ipAddr) {
-			return true, nil
+func (a *allowedIps) contains(ip net.IP) bool {
+	for _, aIP := range *a {
+		if aIP.Equal(ip) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
-// getRemoteIP returns a list of IPs that are associated with this request
-// from https://github.com/kevtainer/denyip/blob/28930e800ff2b37b692c80d72c883cfde00bde1f/denyip.go#L76-L105
-func getRemoteIP(req *http.Request) []string {
-	var ipList []string
-	var headerIPs []string
+// getRemoteIP returns a list of IPs that are associated with this request.
+func getRequestIPs(req *http.Request) []net.IP {
+	var ips []net.IP
 
-	// get IP from header xForwardedFor
-	xff := req.Header.Get(xForwardedFor)
-	xffs := strings.Split(xff, ",")
-	headerIPs = append(headerIPs, xffs...)
+	extractAndAppendHeaderIPs(xForwardedFor, req, &ips)
+	extractAndAppendHeaderIPs(cloudflareIP, req, &ips)
+	extractAndAppendRemoteIP(req.RemoteAddr, &ips)
 
-	// get IP from header cloudflareIP
-	ccip := req.Header.Get(cloudflareIP)
-	ccips := strings.Split(ccip, ",")
-	headerIPs = append(headerIPs, ccips...)
+	return ips
+}
 
-	// trip header IP addresses and append to ipList
-	for _, hIP := range headerIPs {
-		headerIPTrim := strings.TrimSpace(hIP)
-
-		if len(headerIPTrim) > 0 {
-			ipList = append(ipList, headerIPTrim)
+func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *[]net.IP) {
+	hIP := req.Header.Get(header)
+	hIPs := strings.Split(hIP, ",")
+	for _, ipString := range hIPs {
+		ip := net.ParseIP(strings.TrimSpace(ipString))
+		if ip != nil {
+			*ipList = append(*ipList, ip)
 		}
 	}
-
-	// get IP from remoteAddr and append to ipList
-	ipList = extractAndAppendIP(req.RemoteAddr, ipList)
-
-	return ipList
 }
 
-func extractAndAppendIP(remoteAddr string, ipList []string) []string {
-	ip, _, err := net.SplitHostPort(remoteAddr)
+func extractAndAppendRemoteIP(remoteAddr string, ipList *[]net.IP) {
+	ipstr, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
-		ip = remoteAddr
+		ipstr = remoteAddr
 	}
 
-	ipTrim := strings.TrimSpace(ip)
-	if len(ipTrim) > 0 {
-		ipList = append(ipList, ipTrim)
+	ip := net.ParseIP(ipstr)
+	if ip != nil {
+		*ipList = append(*ipList, ip)
 	}
-	return ipList
 }
 
 func resolveHostlist(hosts []string) (allowedIps, error) {
@@ -197,7 +179,7 @@ func resolveHostlist(hosts []string) (allowedIps, error) {
 	for _, host := range hosts {
 		ip, err := net.LookupIP(host)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", errParseIPAddress, err)
 		}
 
 		for _, i := range ip {
