@@ -141,19 +141,21 @@ func getRemoteIP(req *http.Request) []string {
 		}
 	}
 
-	ip, _, err := net.SplitHostPort(req.RemoteAddr)
+	ipList = extractAndAppendIP(req.RemoteAddr, ipList)
+
+	return ipList
+}
+
+func extractAndAppendIP(remoteAddr string, ipList []string) []string {
+	ip, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
-		remoteAddrTrim := strings.TrimSpace(req.RemoteAddr)
-		if len(remoteAddrTrim) > 0 {
-			ipList = append(ipList, remoteAddrTrim)
-		}
-	} else {
-		ipTrim := strings.TrimSpace(ip)
-		if len(ipTrim) > 0 {
-			ipList = append(ipList, ipTrim)
-		}
+		ip = remoteAddr
 	}
 
+	ipTrim := strings.TrimSpace(ip)
+	if len(ipTrim) > 0 {
+		ipList = append(ipList, ipTrim)
+	}
 	return ipList
 }
 
@@ -190,4 +192,15 @@ func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
 	if err != nil {
 		log.Errorf("could not write response: %v", err)
 	}
+}
+
+func (a *allowedIps) String() string {
+	var builder strings.Builder
+	for i, ip := range *a {
+		if i > 0 {
+			builder.WriteString(",")
+		}
+		builder.WriteString(ip.String())
+	}
+	return builder.String()
 }
