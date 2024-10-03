@@ -17,7 +17,6 @@ services:
     volumes:
     - "/var/run/docker.sock:/var/run/docker.sock:ro"
     - "./:/plugins-local/src/github.com/taskmedia/ddns-allowlist:ro"
-    - "./dyn:/dyn"
 
   whoami:
     image: "traefik/whoami"
