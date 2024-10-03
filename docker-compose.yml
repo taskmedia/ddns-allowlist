@@ -8,7 +8,7 @@ services:
     - "--providers.docker=true"
     - "--providers.docker.exposedbydefault=false"
     - "--entryPoints.web.address=:80"
-    - "--experimental.localPlugins.ddns-whitelist.modulename=github.com/taskmedia/ddns-whitelist"
+    - "--experimental.localPlugins.ddns-allowlist.modulename=github.com/taskmedia/ddns-allowlist"
     extra_hosts:
     - "dockerhost=192.168.65.1"
     ports:
@@ -16,7 +16,7 @@ services:
     - "8080:8080"
     volumes:
     - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    - "./:/plugins-local/src/github.com/taskmedia/ddns-whitelist:ro"
+    - "./:/plugins-local/src/github.com/taskmedia/ddns-allowlist:ro"
     - "./dyn:/dyn"
 
   whoami:
@@ -28,17 +28,17 @@ services:
     - "traefik.http.routers.whoami-allow.rule=Host(`allow.whoami.localhost`)"
     - "traefik.http.routers.whoami-allow.entrypoints=web"
     - "traefik.http.routers.whoami-allow.middlewares=ddnswl-allow@docker"
-    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-whitelist.hostList=localhost,dockerhost"
-    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-whitelist.logLevel=debug"
+    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-allowlist.hostList=localhost,dockerhost"
+    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-allowlist.logLevel=debug"
     # deny
     - "traefik.http.routers.whoami-deny.rule=Host(`deny.whoami.localhost`)"
     - "traefik.http.routers.whoami-deny.entrypoints=web"
     - "traefik.http.routers.whoami-deny.middlewares=ddnswl-deny@docker"
-    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-whitelist.hostList=localhost,dns.google"
-    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-whitelist.logLevel=debug"
+    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-allowlist.hostList=localhost,dns.google"
+    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-allowlist.logLevel=debug"
     # # allow ipList
     # - "traefik.http.routers.whoami-allowip.rule=Host(`allow-ip.whoami.localhost`)"
     # - "traefik.http.routers.whoami-allowip.entrypoints=web"
     # - "traefik.http.routers.whoami-allowip.middlewares=ddnswl-allowip@docker"
-    # - "traefik.http.middlewares.ddnswl-allowip.plugin.ddns-whitelist.hostList=localhost"
-    # - "traefik.http.middlewares.ddnswl-allowip.plugin.ddns-whitelist.ipList=192.168.65.1"
+    # - "traefik.http.middlewares.ddnswl-allowip.plugin.ddns-allowlist.hostList=localhost"
+    # - "traefik.http.middlewares.ddnswl-allowip.plugin.ddns-allowlist.ipList=192.168.65.1"

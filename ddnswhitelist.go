@@ -1,8 +1,8 @@
-// Package ddns_whitelist dynamic DNS whitelist
+// Package ddns_allowlist dynamic DNS allowlist
 //
 //revive:disable-next-line:var-naming
 //nolint:stylecheck
-package ddns_whitelist
+package ddns_allowlist
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	typeName      = "ddns-whitelist"
+	typeName      = "ddns-allowlist"
 	xForwardedFor = "X-Forwarded-For"
 	cloudflareIP  = "Cf-Connecting-Ip"
 )
@@ -30,8 +30,8 @@ var (
 // Config the plugin configuration.
 type Config struct {
 	LogLevel string   `json:"logLevel,omitempty"` // Log level (DEBUG, INFO, ERROR)
-	HostList []string `json:"hostList,omitempty"` // Add hosts to whitelist
-	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to whitelist
+	HostList []string `json:"hostList,omitempty"` // Add hosts to allowlist
+	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to allowlist
 }
 
 type allowedIps []*net.IP
@@ -44,15 +44,15 @@ func CreateConfig() *Config {
 	}
 }
 
-// ddnswhitelist plugin.
-type ddnswhitelist struct {
+// ddnsallowlist plugin.
+type ddnsallowlist struct {
 	config *Config
 	name   string
 	next   http.Handler
 	logger *Logger
 }
 
-// New created a new DDNSwhitelist plugin.
+// New created a new DDNSallowlist plugin.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	log := newLogger(config.LogLevel, name, typeName)
 	log.Debug("Creating middleware")
@@ -61,7 +61,7 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 		return nil, errNoHostListProvided
 	}
 
-	return &ddnswhitelist{
+	return &ddnsallowlist{
 		name:   name,
 		next:   next,
 		config: config,
@@ -69,8 +69,8 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 	}, nil
 }
 
-// ServeHTTP ddnswhitelist.
-func (a *ddnswhitelist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+// ServeHTTP ddnsallowlist.
+func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log := a.logger
 
 	var allowedIPs allowedIps

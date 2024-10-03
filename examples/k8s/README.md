@@ -1,6 +1,6 @@
 # Kubernetes examples
 
-Here you will find an example how to use (or test) the DDNS whitelist plugin with Traefik in your cluster.
+Here you will find an example how to use (or test) the DDNS allowlist plugin with Traefik in your cluster.
 
 1. Install the Helm chart of Traefik<br/>
    ```bash

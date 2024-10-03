@@ -1,6 +1,6 @@
 //revive:disable-next-line:var-naming
 //nolint:stylecheck
-package ddns_whitelist
+package ddns_allowlist
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDdnsWhitelist(t *testing.T) {
+func TestDdnsAllowlist(t *testing.T) {
 	testCases := []struct {
 		desc          string
 		hostList      []string
@@ -51,7 +51,7 @@ func TestDdnsWhitelist(t *testing.T) {
 			ctx := context.Background()
 			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
 
-			handler, err := New(ctx, next, cfg, "ddns-whitelist")
+			handler, err := New(ctx, next, cfg, "ddns-allowlist")
 
 			if test.expectedError {
 				assert.Error(t, err)
@@ -63,7 +63,7 @@ func TestDdnsWhitelist(t *testing.T) {
 	}
 }
 
-func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
+func TestDdnsAllowlist_ServeHTTP(t *testing.T) {
 	testCases := []struct {
 		desc      string
 		hostList  []string
@@ -131,7 +131,7 @@ func TestDdnsWhitelist_ServeHTTP(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			handler, err := New(ctx, next, cfg, "ddns-whitelist")
+			handler, err := New(ctx, next, cfg, "ddns-allowlist")
 			require.NoError(t, err)
 			assert.NotNil(t, handler)
 

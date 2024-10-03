@@ -1,28 +1,28 @@
-# DDNS whitelist - Traefik plugin
+# DDNS allowlist - Traefik plugin
 
-Dynamic DNS whitelist plugin for Traefik.
+Dynamic DNS allowlist plugin for Traefik.
 
 ## About
 
-The `ddns-whitelist` plugin for Traefik allows you to whitelist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
+The `ddns-allowlist` plugin for Traefik allows you to allowlist dynamic DNS (DDNS) hosts. Requests from IP addresses that do not resolve to the specified DDNS hosts will be denied.
 
-The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fbe453573cd7803d65cb10/ddns-whitelist).
+The existing plugins can be browsed into the [Plugin Catalog](https://plugins.traefik.io/plugins/66fbe453573cd7803d65cb10/ddns-allowlist).
 
 ## Installation
 
-To install the `ddns-whitelist` plugin, add the following configuration to your Traefik static configuration:
+To install the `ddns-allowlist` plugin, add the following configuration to your Traefik static configuration:
 
 ```yaml
 experimental:
   plugins:
-    ddns-whitelist:
-      moduleName: "github.com/taskmedia/ddns-whitelist"
+    ddns-allowlist:
+      moduleName: "github.com/taskmedia/ddns-allowlist"
       version: v1.2.1
 ```
 
 ## Configuration
 
-Add the `ddns-whitelist` middleware to your Traefik dynamic configuration:
+Add the `ddns-allowlist` middleware to your Traefik dynamic configuration:
 
 ```yaml
 # Dynamic configuration
@@ -35,7 +35,7 @@ http:
       entryPoints:
         - web
       middlewares:
-        - ddns-whitelist-router
+        - ddns-allowlist-router
 
   services:
     service-foo:
@@ -44,12 +44,12 @@ http:
           - url: http://127.0.0.1:5000
 
   middlewares:
-    ddns-whitelist-router:
+    ddns-allowlist-router:
       plugin:
-        ddns-whitelist:
+        ddns-allowlist:
           logLevel: ERROR
-          hostList: # hosts to dynamically whitelist via DNS lookup
+          hostList: # hosts to dynamically allowlist via DNS lookup
             - my.router.ddns.tld
-          ipList: # optional IP addresses to whitelist
+          ipList: # optional IP addresses to allowlist
             - 1.2.3.4
 ```

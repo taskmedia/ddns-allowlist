@@ -1,10 +1,10 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: ddnswhitelist-allow
+  name: ddnsallowlist-allow
 spec:
   plugin:
-    ddns-whitelist:
+    ddns-allowlist:
       hostList:
       - localhost
 ---
@@ -22,5 +22,5 @@ spec:
     - name: whoami
       port: 80
     middlewares:
-    - name: ddnswhitelist-allow
+    - name: ddnsallowlist-allow
 
