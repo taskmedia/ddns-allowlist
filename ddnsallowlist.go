@@ -34,8 +34,10 @@ type Config struct {
 	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to allowlist
 }
 
-type allowedIps []net.IP
-type requestIps []net.IP
+type (
+	allowedIps []net.IP
+	requestIps []net.IP
+)
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *Config {
