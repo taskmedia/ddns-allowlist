@@ -12,9 +12,9 @@ import (
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
-// const (
-// 	typeName = "ddns-allowlist"
-// )
+const (
+	typeName = "ddns-allowlist"
+)
 
 // DdnsAllowListConfig holds the DDNS allowlist middleware plugin configuration.
 // This middleware limits allowed requests based on the client IP on a given hostname.
@@ -36,6 +36,7 @@ type ddnsAllowLister struct {
 	strategy    ip.Strategy
 	name        string
 	// rejectStatusCode int
+	logger *Logger
 }
 
 // CreateConfig creates the default plugin configuration.
@@ -45,16 +46,22 @@ func CreateConfig() *DdnsAllowListConfig {
 
 // New created a new DDNSallowlist plugin.
 func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name string) (http.Handler, error) {
+	logger := newLogger("debug", name, typeName)
+	logger.Debug("Creating middleware")
+
 	return &ddnsAllowLister{
 		// strategy:         strategy,
 		// allowLister:      checker,
 		next: next,
 		name: name,
 		// rejectStatusCode: rejectStatusCode,
+		logger: logger,
 	}, nil
 }
 
 // ServeHTTP ddnsallowlist.
 func (a *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	logger := a.logger
+	logger.Debug("Serving middleware")
 	a.next.ServeHTTP(rw, req)
 }
