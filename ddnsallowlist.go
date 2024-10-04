@@ -6,6 +6,7 @@ package ddns_allowlist
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
@@ -48,6 +49,10 @@ func CreateConfig() *DdnsAllowListConfig {
 func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name string) (http.Handler, error) {
 	logger := newLogger("debug", name, typeName)
 	logger.Debug("Creating middleware")
+
+	if len(config.SourceRangeHosts) == 0 {
+		return nil, errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
+	}
 
 	return &ddnsAllowLister{
 		// strategy:         strategy,
