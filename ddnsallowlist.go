@@ -120,7 +120,7 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, aIPs.String())
+	log.Debugf("request allowed from %s, allowList: [%s]", reqIPs, aIPs.String())
 	a.next.ServeHTTP(rw, req)
 }
 
