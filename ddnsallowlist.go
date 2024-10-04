@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
@@ -20,8 +21,9 @@ const (
 
 // Define static error variable.
 var (
-	errEmptySourceRangeHosts = errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
-	errInvalidHTTPStatuscode = errors.New("invalid HTTP status code")
+	errEmptySourceRangeHosts     = errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
+	errInvalidHTTPStatuscode     = errors.New("invalid HTTP status code")
+	errNoIPv4AddressFoundForHost = errors.New("no IPv4 addresses found for hostname")
 )
 
 // DdnsAllowListConfig holds the DDNS allowlist middleware plugin configuration.
@@ -69,8 +71,14 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
-	// TODO: not only add SourceRangeIPs to checker - also looked up hostnames (also check if ips are not empty)
-	checker, err := ip.NewChecker(config.SourceRangeIPs)
+	// TODO: known bug with current implementation: hostname will be looked up once not periodically
+	hostIPs := resolveHosts(*logger, config.SourceRangeHosts)
+
+	var allowedIPs []string
+	allowedIPs = append(allowedIPs, hostIPs...)
+	allowedIPs = append(allowedIPs, config.SourceRangeIPs...)
+
+	checker, err := ip.NewChecker(allowedIPs)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse CIDRs %s: %w", config.SourceRangeIPs, err)
 	}
@@ -80,8 +88,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, err
 	}
 
-	// TODO: add full range to log message
-	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", config.SourceRangeIPs)
+	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", allowedIPs)
 
 	return &ddnsAllowLister{
 		strategy:         strategy,
@@ -100,7 +107,6 @@ func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	clientIP := dal.strategy.GetIP(req)
 	err := dal.allowLister.IsAuthorized(clientIP)
-
 	if err != nil {
 		logger.Debugf("Rejecting IP %s: %v", clientIP, err)
 		reject(logger, dal.rejectStatusCode, rw)
@@ -117,4 +123,32 @@ func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
 	if err != nil {
 		logger.Error(err)
 	}
+}
+
+func resolveHosts(logger Logger, hosts []string) []string {
+	hostIPs := []string{}
+	for _, host := range hosts {
+		lookupIPs, err := net.LookupIP(host)
+		if err != nil {
+			logger.Errorf("Error looking up IP for host %s: %v", host, err)
+			break
+		}
+
+		currentHostIPs := []string{}
+		for _, lookupIP := range lookupIPs {
+			// Currently only IPv4 is supported
+			if len(lookupIP) == net.IPv4len {
+				currentHostIPs = append(currentHostIPs, lookupIP.String())
+			}
+		}
+
+		if len(currentHostIPs) == 0 {
+			logger.Errorf("%w: %s", errNoIPv4AddressFoundForHost, host)
+			break
+		}
+
+		hostIPs = append(hostIPs, currentHostIPs...)
+	}
+
+	return hostIPs
 }
