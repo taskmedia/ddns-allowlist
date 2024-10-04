@@ -60,8 +60,8 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 }
 
 // ServeHTTP ddnsallowlist.
-func (a *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	logger := a.logger
+func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	logger := dal.logger
 	logger.Debug("Serving middleware")
-	a.next.ServeHTTP(rw, req)
+	dal.next.ServeHTTP(rw, req)
 }
