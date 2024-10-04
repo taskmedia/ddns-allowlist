@@ -37,6 +37,8 @@ type DdnsAllowListConfig struct {
 	// RejectStatusCode defines the HTTP status code used for refused requests.
 	// If not set, the default is 403 (Forbidden).
 	RejectStatusCode int `json:"rejectStatusCode,omitempty"`
+	// LogLevel defines on what level the middleware plugin should print log messages (DEBUG, INFO, ERROR).
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
@@ -56,7 +58,7 @@ func CreateConfig() *DdnsAllowListConfig {
 
 // New created a new DDNSallowlist plugin.
 func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name string) (http.Handler, error) {
-	logger := newLogger("debug", name, typeName)
+	logger := newLogger(config.LogLevel, name, typeName)
 	logger.Debug("Creating middleware")
 
 	if len(config.SourceRangeHosts) == 0 {
