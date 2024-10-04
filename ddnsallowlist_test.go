@@ -129,6 +129,34 @@ func TestDdnsAllowlist_ServeHTTP(t *testing.T) {
 			},
 			expected: http.StatusInternalServerError,
 		},
+		{
+			desc:     "access via IPv6",
+			hostList: []string{"localhost"},
+			req: &http.Request{
+				RemoteAddr: "::1",
+			},
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "access via xForwardedFor IP only",
+			hostList: []string{"dns.google"},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"8.8.8.8"},
+				},
+			},
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "access via Cloudflare IP only",
+			hostList: []string{"dns.google"},
+			req: &http.Request{
+				Header: map[string][]string{
+					"Cf-Connecting-Ip": {"8.8.8.8"},
+				},
+			},
+			expected: http.StatusOK,
+		},
 	}
 
 	for _, test := range testCases {
