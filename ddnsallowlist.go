@@ -7,6 +7,7 @@ package ddns_allowlist
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
@@ -32,12 +33,12 @@ type DdnsAllowListConfig struct {
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
 type ddnsAllowLister struct {
-	next        http.Handler
-	allowLister *ip.Checker
-	strategy    ip.Strategy
-	name        string
-	// rejectStatusCode int
-	logger *Logger
+	next             http.Handler
+	allowLister      *ip.Checker
+	strategy         ip.Strategy
+	name             string
+	rejectStatusCode int
+	logger           *Logger
 }
 
 // CreateConfig creates the default plugin configuration.
@@ -54,13 +55,21 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
 	}
 
+	rejectStatusCode := config.RejectStatusCode
+	// If RejectStatusCode is not given, default to Forbidden (403).
+	if rejectStatusCode == 0 {
+		rejectStatusCode = http.StatusForbidden
+	} else if http.StatusText(rejectStatusCode) == "" {
+		return nil, fmt.Errorf("invalid HTTP status code %d", rejectStatusCode)
+	}
+
 	return &ddnsAllowLister{
 		// strategy:         strategy,
 		// allowLister:      checker,
-		next: next,
-		name: name,
-		// rejectStatusCode: rejectStatusCode,
-		logger: logger,
+		next:             next,
+		name:             name,
+		rejectStatusCode: rejectStatusCode,
+		logger:           logger,
 	}, nil
 }
 
