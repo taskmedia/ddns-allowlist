@@ -18,6 +18,12 @@ const (
 	typeName = "ddns-allowlist"
 )
 
+// Define static error variable.
+var (
+	errEmptySourceRangeHosts = errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
+	errInvalidHTTPStatuscode = errors.New("invalid HTTP status code")
+)
+
 // DdnsAllowListConfig holds the DDNS allowlist middleware plugin configuration.
 // This middleware limits allowed requests based on the client IP on a given hostname.
 // More info: https://github.com/taskmedia/ddns-whitelist
@@ -52,7 +58,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	logger.Debug("Creating middleware")
 
 	if len(config.SourceRangeHosts) == 0 {
-		return nil, errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
+		return nil, errEmptySourceRangeHosts
 	}
 
 	rejectStatusCode := config.RejectStatusCode
@@ -60,7 +66,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	if rejectStatusCode == 0 {
 		rejectStatusCode = http.StatusForbidden
 	} else if http.StatusText(rejectStatusCode) == "" {
-		return nil, fmt.Errorf("invalid HTTP status code %d", rejectStatusCode)
+		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
 	// TODO: not only add SourceRangeIPs to checker - also looked up hostnames (also check if ips are not empty)
@@ -110,6 +116,5 @@ func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
 	_, err := rw.Write([]byte(http.StatusText(statusCode)))
 	if err != nil {
 		logger.Error(err)
-
 	}
 }
