@@ -106,15 +106,20 @@ func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	log.Debugf("request IP addresses: %v", reqIPs)
 
+	allowed := false
 	for _, reqIP := range reqIPs {
-		isAllowed := aIPs.contains(reqIP)
-
-		if !isAllowed {
-			log.Infof("request denied from %s, allowList: [%s]", reqIPs, aIPs.String())
-			reject(http.StatusForbidden, rw, log)
-			return
+		if aIPs.contains(reqIP) {
+			allowed = true
+			break
 		}
 	}
+
+	if !allowed {
+		log.Infof("request denied from %s, allowList: [%s]", reqIPs, aIPs.String())
+		reject(http.StatusForbidden, rw, log)
+		return
+	}
+
 	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, aIPs.String())
 	a.next.ServeHTTP(rw, req)
 }
