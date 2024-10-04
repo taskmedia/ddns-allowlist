@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
 // const (
@@ -30,10 +31,10 @@ type DdnsAllowListConfig struct {
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
 type ddnsAllowLister struct {
-	next http.Handler
-	// allowLister      *ip.Checker
-	// strategy         ip.Strategy
-	name string
+	next        http.Handler
+	allowLister *ip.Checker
+	strategy    ip.Strategy
+	name        string
 	// rejectStatusCode int
 }
 
