@@ -7,6 +7,8 @@ package ddns_allowlist
 import (
 	"context"
 	"net/http"
+
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
 )
 
 // const (
@@ -18,12 +20,12 @@ import (
 // More info: https://github.com/taskmedia/ddns-whitelist
 type DdnsAllowListConfig struct {
 	// SourceRange defines the set of allowed IPs (or ranges of allowed IPs by using CIDR notation).
-	SourceRangeHosts []string `json:"sourceRangeHosts,omitempty" toml:"sourceRangeHosts,omitempty" yaml:"sourceRangeHosts,omitempty"`
-	SourceRangeIPs   []string `json:"sourceRangeIps,omitempty" toml:"sourceRangeIps,omitempty" yaml:"sourceRangeIps,omitempty"`
-	// IPStrategy       *dynamic.IPStrategy `json:"ipStrategy,omitempty" toml:"ipStrategy,omitempty" yaml:"ipStrategy,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
+	SourceRangeHosts []string            `json:"sourceRangeHosts,omitempty"`
+	SourceRangeIPs   []string            `json:"sourceRangeIps,omitempty"`
+	IPStrategy       *dynamic.IPStrategy `json:"ipStrategy,omitempty"`
 	// RejectStatusCode defines the HTTP status code used for refused requests.
 	// If not set, the default is 403 (Forbidden).
-	RejectStatusCode int `json:"rejectStatusCode,omitempty" toml:"rejectStatusCode,omitempty" yaml:"rejectStatusCode,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
+	RejectStatusCode int `json:"rejectStatusCode,omitempty"`
 }
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
