@@ -157,6 +157,19 @@ func TestDdnsAllowlist_ServeHTTP(t *testing.T) {
 			},
 			expected: http.StatusOK,
 		},
+		{
+			// this case can happen if the loadbalancer is not forwarding the correct request IP but its local address
+			desc:     "access with multiple IPs",
+			hostList: []string{"dns.google"},
+			req: &http.Request{
+				RemoteAddr: "10.1.2.3",
+				Header: map[string][]string{
+					"X-Forwarded-For":  {"10.1.2.3"},
+					"Cf-Connecting-Ip": {"8.8.8.8"},
+				},
+			},
+			expected: http.StatusOK,
+		},
 	}
 
 	for _, test := range testCases {
