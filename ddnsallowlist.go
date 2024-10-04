@@ -74,6 +74,9 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, err
 	}
 
+	// TODO: add full range to log message
+	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", config.SourceRangeIPs)
+
 	return &ddnsAllowLister{
 		strategy:         strategy,
 		allowLister:      checker,
