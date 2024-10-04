@@ -74,11 +74,11 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	// TODO: known bug with current implementation: hostname will be looked up once not periodically
 	hostIPs := resolveHosts(*logger, config.SourceRangeHosts)
 
-	var allowedIPs []string
-	allowedIPs = append(allowedIPs, hostIPs...)
-	allowedIPs = append(allowedIPs, config.SourceRangeIPs...)
+	var trustedIPs []string
+	trustedIPs = append(trustedIPs, hostIPs...)
+	trustedIPs = append(trustedIPs, config.SourceRangeIPs...)
 
-	checker, err := ip.NewChecker(allowedIPs)
+	checker, err := ip.NewChecker(trustedIPs)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse CIDRs %s: %w", config.SourceRangeIPs, err)
 	}
@@ -88,7 +88,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, err
 	}
 
-	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", allowedIPs)
+	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", trustedIPs)
 
 	return &ddnsAllowLister{
 		strategy:         strategy,
