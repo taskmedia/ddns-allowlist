@@ -69,8 +69,13 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, fmt.Errorf("cannot parse CIDRs %s: %w", config.SourceRangeIPs, err)
 	}
 
+	strategy, err := config.IPStrategy.Get()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ddnsAllowLister{
-		// strategy:         strategy,
+		strategy:         strategy,
 		allowLister:      checker,
 		next:             next,
 		name:             name,
