@@ -91,5 +91,25 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := dal.logger
 	logger.Debug("Serving middleware")
+
+	clientIP := dal.strategy.GetIP(req)
+	err := dal.allowLister.IsAuthorized(clientIP)
+
+	if err != nil {
+		logger.Debugf("Rejecting IP %s: %v", clientIP, err)
+		reject(logger, dal.rejectStatusCode, rw)
+		return
+	}
+	logger.Debugf("Accepting IP %s", clientIP)
+
 	dal.next.ServeHTTP(rw, req)
+}
+
+func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
+	rw.WriteHeader(statusCode)
+	_, err := rw.Write([]byte(http.StatusText(statusCode)))
+	if err != nil {
+		logger.Error(err)
+
+	}
 }
