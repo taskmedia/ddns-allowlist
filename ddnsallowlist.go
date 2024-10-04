@@ -63,9 +63,15 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, fmt.Errorf("invalid HTTP status code %d", rejectStatusCode)
 	}
 
+	// TODO: not only add SourceRangeIPs to checker - also looked up hostnames (also check if ips are not empty)
+	checker, err := ip.NewChecker(config.SourceRangeIPs)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse CIDRs %s: %w", config.SourceRangeIPs, err)
+	}
+
 	return &ddnsAllowLister{
 		// strategy:         strategy,
-		// allowLister:      checker,
+		allowLister:      checker,
 		next:             next,
 		name:             name,
 		rejectStatusCode: rejectStatusCode,
