@@ -18,6 +18,16 @@ func TestResolveHosts(t *testing.T) {
 			expectedHostIPs: []string{},
 			// TODO: might check if empty was logged?
 		},
+		{
+			desc:            "single host",
+			hosts:           []string{"dns.google"},
+			expectedHostIPs: []string{"8.8.8.8", "8.8.4.4"},
+		},
+		{
+			desc:            "multiple hosts",
+			hosts:           []string{"dns.google", "cloudflare-dns.com"},
+			expectedHostIPs: []string{"8.8.8.8", "8.8.4.4", "104.16.248.249", "104.16.249.249"},
+		},
 	}
 
 	logger := &Logger{}
