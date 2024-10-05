@@ -70,7 +70,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	if rejectStatusCode == 0 {
 		rejectStatusCode = http.StatusForbidden
 	} else if http.StatusText(rejectStatusCode) == "" {
-		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
+		return nil, fmt.Errorf("%v: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
 	// TODO: known bug with current implementation: hostname will be looked up once not periodically
@@ -79,10 +79,11 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	var trustedIPs []string
 	trustedIPs = append(trustedIPs, hostIPs...)
 	trustedIPs = append(trustedIPs, config.SourceRangeIPs...)
+	logger.Debugf("trustedIPs: %v", trustedIPs)
 
 	checker, err := ip.NewChecker(trustedIPs)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse CIDRs %s: %w", config.SourceRangeIPs, err)
+		return nil, fmt.Errorf("cannot parse CIDRs %s: %v", config.SourceRangeIPs, err)
 	}
 
 	strategy, err := config.IPStrategy.Get()
@@ -145,7 +146,7 @@ func resolveHosts(logger Logger, hosts []string) []string {
 		}
 
 		if len(currentHostIPs) == 0 {
-			logger.Errorf("%w: %s", errNoIPv4AddressFoundForHost, host)
+			logger.Errorf("%v: %s", errNoIPv4AddressFoundForHost, host)
 			break
 		}
 
