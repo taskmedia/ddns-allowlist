@@ -1,6 +1,7 @@
 package ddns_allowlist
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,14 +20,19 @@ func TestResolveHosts(t *testing.T) {
 			// TODO: might check if empty was logged?
 		},
 		{
+			desc:            "localhost",
+			hosts:           []string{"localhost"},
+			expectedHostIPs: []string{"127.0.0.1"},
+		},
+		{
 			desc:            "single host",
 			hosts:           []string{"dns.google"},
-			expectedHostIPs: []string{"8.8.8.8", "8.8.4.4"},
+			expectedHostIPs: []string{"8.8.4.4", "8.8.8.8"},
 		},
 		{
 			desc:            "multiple hosts",
 			hosts:           []string{"dns.google", "cloudflare-dns.com"},
-			expectedHostIPs: []string{"8.8.8.8", "8.8.4.4", "104.16.248.249", "104.16.249.249"},
+			expectedHostIPs: []string{"104.16.248.249", "104.16.249.249", "8.8.4.4", "8.8.8.8"},
 		},
 	}
 
@@ -34,6 +40,7 @@ func TestResolveHosts(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			hostIPs := resolveHosts(*logger, tC.hosts)
+			sort.Strings(hostIPs)
 			assert.Equal(t, tC.expectedHostIPs, hostIPs)
 		})
 	}
