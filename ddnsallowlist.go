@@ -140,7 +140,7 @@ func resolveHosts(logger Logger, hosts []string) []string {
 		currentHostIPs := []string{}
 		for _, lookupIP := range lookupIPs {
 			// Currently only IPv4 is supported
-			if len(lookupIP) == net.IPv4len {
+			if isIPv4(lookupIP) {
 				currentHostIPs = append(currentHostIPs, lookupIP.String())
 			}
 		}
@@ -152,6 +152,10 @@ func resolveHosts(logger Logger, hosts []string) []string {
 
 		hostIPs = append(hostIPs, currentHostIPs...)
 	}
-
 	return hostIPs
+}
+
+// isIPv4 checks if the given net.IP is an IPv4 address.
+func isIPv4(ip net.IP) bool {
+	return ip.To4() != nil
 }
