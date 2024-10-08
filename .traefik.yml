@@ -8,7 +8,9 @@ summary: 'A middleware that allows you to allowlist on a dynamic DNS'
 
 testData:
   logLevel: ERROR
-  hostList:
+  sourceRangeHosts:
   - my.router.ddns.tld
-  ipList:
+  sourceRangeIps:
   - 1.2.3.4
+  ipStrategy: {}
+  lookupInterval: 300

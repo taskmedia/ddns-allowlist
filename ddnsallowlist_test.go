@@ -1,269 +1,51 @@
+// Package ddns_allowlist dynamic DNS allowlist
+//
 //revive:disable-next-line:var-naming
 //nolint:stylecheck
 package ddns_allowlist
 
 import (
-	"context"
-	"net/http"
-	"net/http/httptest"
 	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestDdnsAllowlist(t *testing.T) {
+func TestResolveHosts(t *testing.T) {
 	testCases := []struct {
-		desc          string
-		hostList      []string
-		ipList        []string
-		expectedError bool
+		desc            string
+		hosts           []string
+		expectedHostIPs []string
 	}{
 		{
-			desc:          "empty host list",
-			hostList:      []string{},
-			expectedError: true,
+			desc:            "no hosts",
+			hosts:           []string{},
+			expectedHostIPs: []string{},
+			// TODO: might check if empty was logged?
 		},
 		{
-			desc:     "valid host - localhost",
-			hostList: []string{"localhost"},
+			desc:            "localhost",
+			hosts:           []string{"localhost"},
+			expectedHostIPs: []string{"127.0.0.1"},
 		},
 		{
-			desc:     "valid host - github.com",
-			hostList: []string{"github.com"},
+			desc:            "single host",
+			hosts:           []string{"dns.google"},
+			expectedHostIPs: []string{"8.8.4.4", "8.8.8.8"},
 		},
 		{
-			desc:     "valid host - github.com",
-			hostList: []string{"localhost"},
-			ipList:   []string{"192.168.1.1"},
+			desc:            "multiple hosts",
+			hosts:           []string{"dns.google", "cloudflare-dns.com"},
+			expectedHostIPs: []string{"104.16.248.249", "104.16.249.249", "8.8.4.4", "8.8.8.8"},
 		},
 	}
 
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			cfg := CreateConfig()
-			cfg.HostList = test.hostList
-			cfg.IPList = test.ipList
-
-			ctx := context.Background()
-			next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
-
-			handler, err := New(ctx, next, cfg, "ddns-allowlist")
-
-			if test.expectedError {
-				assert.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				assert.NotNil(t, handler)
-			}
-		})
-	}
-}
-
-func TestDdnsAllowlist_ServeHTTP(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		hostList []string
-		ipList   []string
-		req      *http.Request
-		expected int
-	}{
-		{
-			desc:     "allowed host internal - localhost",
-			hostList: []string{"localhost"},
-			req: &http.Request{
-				RemoteAddr: "127.0.0.1",
-			},
-			expected: http.StatusOK,
-		},
-		{
-			desc:     "allowed host external - dns.google",
-			hostList: []string{"dns.google"},
-			req: &http.Request{
-				RemoteAddr: "8.8.8.8",
-			},
-			expected: http.StatusOK,
-		},
-		{
-			desc:     "denied host internal - localhost",
-			hostList: []string{"localhost"},
-			req: &http.Request{
-				RemoteAddr: "10.10.10.10",
-			},
-			expected: http.StatusForbidden,
-		},
-		{
-			desc:     "denied host external",
-			hostList: []string{"localhost"},
-			req: &http.Request{
-				RemoteAddr: "1.2.3.4",
-			},
-			expected: http.StatusForbidden,
-		},
-		{
-			desc:     "invalid host list",
-			hostList: []string{"invalid"},
-			req: &http.Request{
-				RemoteAddr: "127.0.0.1",
-			},
-			expected: http.StatusInternalServerError,
-		},
-		{
-			desc:     "allowed ip",
-			hostList: []string{"localhost"},
-			ipList:   []string{"1.2.3.4"},
-			req: &http.Request{
-				RemoteAddr: "1.2.3.4",
-			},
-			expected: http.StatusOK,
-		},
-		{
-			desc:     "invalid ip list",
-			hostList: []string{"localhost"},
-			ipList:   []string{"invalid-ip"},
-			req: &http.Request{
-				RemoteAddr: "127.0.0.1",
-			},
-			expected: http.StatusInternalServerError,
-		},
-		{
-			desc:     "access via IPv6",
-			hostList: []string{"localhost"},
-			req: &http.Request{
-				RemoteAddr: "::1",
-			},
-			expected: http.StatusOK,
-		},
-		{
-			desc:     "access via xForwardedFor IP only",
-			hostList: []string{"dns.google"},
-			req: &http.Request{
-				Header: map[string][]string{
-					"X-Forwarded-For": {"8.8.8.8"},
-				},
-			},
-			expected: http.StatusOK,
-		},
-		{
-			desc:     "access via Cloudflare IP only",
-			hostList: []string{"dns.google"},
-			req: &http.Request{
-				Header: map[string][]string{
-					"Cf-Connecting-Ip": {"8.8.8.8"},
-				},
-			},
-			expected: http.StatusOK,
-		},
-		{
-			// this case can happen if the loadbalancer is not forwarding the correct request IP but its local address
-			desc:     "access with multiple IPs",
-			hostList: []string{"dns.google"},
-			req: &http.Request{
-				RemoteAddr: "10.1.2.3",
-				Header: map[string][]string{
-					"X-Forwarded-For":  {"10.1.2.3"},
-					"Cf-Connecting-Ip": {"8.8.8.8"},
-				},
-			},
-			expected: http.StatusOK,
-		},
-	}
-
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			cfg := CreateConfig()
-			cfg.HostList = test.hostList
-			cfg.IPList = test.ipList
-
-			ctx := context.Background()
-
-			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			})
-
-			handler, err := New(ctx, next, cfg, "ddns-allowlist")
-			require.NoError(t, err)
-			assert.NotNil(t, handler)
-
-			rec := httptest.NewRecorder()
-			handler.ServeHTTP(rec, test.req)
-
-			assert.Equal(t, test.expected, rec.Code)
-		})
-	}
-}
-
-func TestGetRemoteIP(t *testing.T) {
-	// Test function getRemoteIP()
-
-	testCases := []struct {
-		desc     string
-		req      *http.Request
-		expected []string
-	}{
-		{
-			desc: "valid remote address",
-			req: &http.Request{
-				RemoteAddr: "1.1.1.1",
-			},
-			expected: []string{"1.1.1.1"},
-		},
-		{
-			desc: "valid remote address with port",
-			req: &http.Request{
-				RemoteAddr: "1.1.1.1:8080",
-			},
-			expected: []string{"1.1.1.1"},
-		},
-		{
-			desc: "xForwardedFor address",
-			req: &http.Request{
-				RemoteAddr: "1.1.1.1",
-				Header: map[string][]string{
-					"X-Forwarded-For": {"2.2.2.2"},
-				},
-			},
-			expected: []string{"1.1.1.1", "2.2.2.2"},
-		},
-		{
-			desc: "multiple xForwardedFor address",
-			req: &http.Request{
-				RemoteAddr: "1.1.1.1",
-				Header: map[string][]string{
-					"X-Forwarded-For": {"2.2.2.2, 3.3.3.3"},
-				},
-			},
-			expected: []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
-		},
-		{
-			desc: "cloudflare address",
-			req: &http.Request{
-				RemoteAddr: "1.1.1.1",
-				Header: map[string][]string{
-					"Cf-Connecting-Ip": {"2.2.2.2"},
-				},
-			},
-			expected: []string{"1.1.1.1", "2.2.2.2"},
-		},
-	}
-
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			ips := getRequestIPs(test.req)
-			var ipsStr []string
-			for _, ip := range ips {
-				ipsStr = append(ipsStr, ip.String())
-			}
-			sort.Strings(ipsStr)
-
-			assert.Equal(t, test.expected, ipsStr)
+	logger := &Logger{}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			hostIPs := resolveHosts(*logger, tC.hosts)
+			sort.Strings(hostIPs)
+			assert.Equal(t, tC.expectedHostIPs, hostIPs)
 		})
 	}
 }

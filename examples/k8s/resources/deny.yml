@@ -5,8 +5,13 @@ metadata:
 spec:
   plugin:
     ddns-allowlist:
-      hostList:
+      logLevel: DEBUG
+      sourceRangeHosts:
       - dns.google
+      # sourceRangeIps:
+      # - 1.2.3.4
+      # ipStrategy: {}
+      lookupInterval: 15
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
