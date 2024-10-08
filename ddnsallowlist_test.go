@@ -153,6 +153,8 @@ func TestUpdateTrustedIPs(t *testing.T) {
 		assert.NoError(t, dal.allowLister.IsAuthorized("4.3.2.1"))
 		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.4.4"))
 		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.8.8"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("2001:4860:4860::8844"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("2001:4860:4860::8888"))
 	})
 }
 
@@ -176,6 +178,16 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			desc: "allowed host internal - localhost IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "::1",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
 			desc: "allowed host external - dns.google",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
@@ -186,12 +198,32 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			desc: "allowed host external - dns.google IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+			},
+			req: &http.Request{
+				RemoteAddr: "2001:4860:4860::8888",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
 			desc: "denied host internal - localhost",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"localhost"},
 			},
 			req: &http.Request{
 				RemoteAddr: "10.10.10.10",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied host internal - localhost IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "c0de::",
 			},
 			expectedStatus: http.StatusForbidden,
 		},
