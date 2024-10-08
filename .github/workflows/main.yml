@@ -68,6 +68,9 @@ jobs:
       - name: Lint and Tests
         run: make
 
+      - name: Coverage report
+        run: go test -coverprofile=coverage.txt
+
       # - name: Run tests with Yaegi
       #   run: make yaegi_test
       #   env:
