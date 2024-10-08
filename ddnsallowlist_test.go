@@ -68,7 +68,7 @@ func TestNew(t *testing.T) {
 			desc: "IP strategy RemoteAddress",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"example.com"},
-				IPStrategy:       &dynamic.IPStrategy{},
+				IPStrategy:       &dynamic.IPStrategyDnswl{},
 			},
 			ipstrategy: &ip.RemoteAddrStrategy{},
 		},
@@ -76,7 +76,7 @@ func TestNew(t *testing.T) {
 			desc: "IP strategy Depth",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"example.com"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					Depth: 1,
 				},
 			},
@@ -88,7 +88,7 @@ func TestNew(t *testing.T) {
 		// 	desc: "IP strategy Pool",
 		// 	config: &DdnsAllowListConfig{
 		// 		SourceRangeHosts: []string{"example.com"},
-		// 		IPStrategy: &dynamic.IPStrategy{
+		// 		IPStrategy: &dynamic.IPStrategyDnswl{
 		// 			ExcludedIPs: []string{"1.2.3.4"},
 		// 		},
 		// 	},
@@ -97,6 +97,18 @@ func TestNew(t *testing.T) {
 		// 		Checker: &ip.Checker{},
 		// 	},
 		// },
+		{
+			desc: "IP strategy CloudflareDepth",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"example.com"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 1,
+				},
+			},
+			ipstrategy: &ip.CloudflareDepthStrategy{
+				CloudflareDepth: 1,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -145,6 +157,7 @@ func TestUpdateTrustedIPs(t *testing.T) {
 	})
 }
 
+//nolint:maintidx
 func TestServeHTTP(t *testing.T) {
 	testCase := []struct {
 		desc           string
@@ -240,7 +253,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "access via xForwardedFor depth IP",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					Depth: 1,
 				},
 			},
@@ -255,7 +268,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "access via xForwardedFor depth second IP",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					Depth: 2,
 				},
 			},
@@ -270,7 +283,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "denied via xForwardedFor depth",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					Depth: 1,
 				},
 			},
@@ -285,7 +298,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "denied via xForwardedFor depth with allowed RemoteAddress",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					Depth: 1,
 				},
 			},
@@ -301,7 +314,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "access via xForwardedFor excluded IPs",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					ExcludedIPs: []string{"1.2.3.4"},
 				},
 			},
@@ -316,13 +329,88 @@ func TestServeHTTP(t *testing.T) {
 			desc: "denied via xForwardedFor excluded IPs",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
+				IPStrategy: &dynamic.IPStrategyDnswl{
 					ExcludedIPs: []string{"1.2.3.4", "8.8.8.8"},
 				},
 			},
 			req: &http.Request{
 				Header: map[string][]string{
 					"X-Forwarded-For": {"8.8.8.8"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "access via CfConnectingIp depth IP",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"Cf-Connecting-Ip": {"8.8.8.8"},
+				},
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "access via CfConnectingIp depth second IP",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 2,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"Cf-Connecting-Ip": {"8.8.8.8, 1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "denied via CfConnectingIp depth",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"Cf-Connecting-Ip": {"1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied no CfConnectingIp given",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"127.0.0.1"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied no CfConnectingIp given but xForwardedFor IP",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+				IPStrategy: &dynamic.IPStrategyDnswl{
+					CloudflareDepth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"1.2.3.4"},
 				},
 			},
 			expectedStatus: http.StatusForbidden,

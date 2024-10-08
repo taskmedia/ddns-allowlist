@@ -34,9 +34,9 @@ var (
 // More info: https://github.com/taskmedia/ddns-whitelist
 type DdnsAllowListConfig struct {
 	// SourceRange defines the set of allowed IPs (or ranges of allowed IPs by using CIDR notation).
-	SourceRangeHosts []string            `json:"sourceRangeHosts,omitempty"`
-	SourceRangeIPs   []string            `json:"sourceRangeIps,omitempty"`
-	IPStrategy       *dynamic.IPStrategy `json:"ipStrategy,omitempty"`
+	SourceRangeHosts []string                 `json:"sourceRangeHosts,omitempty"`
+	SourceRangeIPs   []string                 `json:"sourceRangeIps,omitempty"`
+	IPStrategy       *dynamic.IPStrategyDnswl `json:"ipStrategy,omitempty"`
 	// RejectStatusCode defines the HTTP status code used for refused requests.
 	// If not set, the default is 403 (Forbidden).
 	RejectStatusCode int `json:"rejectStatusCode,omitempty"`
@@ -83,7 +83,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
-	strategy, err := config.IPStrategy.Get()
+	strategy, err := config.IPStrategy.GetDnswl()
 	if err != nil {
 		return nil, err
 	}
