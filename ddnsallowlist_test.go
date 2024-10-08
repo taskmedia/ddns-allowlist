@@ -5,12 +5,16 @@
 package ddns_allowlist
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
@@ -132,6 +136,47 @@ func TestUpdateTrustedIPs(t *testing.T) {
 		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.4.4"), "sasf")
 		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.8.8"), "sasf")
 	})
+}
+
+func TestServeHTTP(t *testing.T) {
+	testCase := []struct {
+		desc           string
+		config         *DdnsAllowListConfig
+		req            *http.Request
+		expectedStatus int
+	}{
+		{
+			desc: "allowed host internal - localhost",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "127.0.0.1",
+			},
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	for _, tc := range testCase {
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			handler, err := New(ctx, next, tc.config, "ddns-allowlist")
+
+			require.NoError(t, err)
+			assert.NotNil(t, handler)
+
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, tc.req)
+
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+		})
+	}
 }
 
 func TestResolveHosts(t *testing.T) {
