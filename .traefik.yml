@@ -14,7 +14,7 @@ testData:
   - 1.2.3.4
   # ipStrategy:
   #   depth: 1
-  #   CloudflareDepth: 1
+  #   cloudflareDepth: 1
   #   excludedIPs:
   #     - 4.3.2.1
   lookupInterval: 300
