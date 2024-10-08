@@ -3,7 +3,7 @@ experimental:
   plugins:
     ddns-allowlist:
       moduleName: "github.com/taskmedia/ddns-allowlist"
-      version: v1.5.1
+      version: v1.5.2
 
 globalArguments:
 - "--global.checknewversion=false"
