@@ -10,209 +10,188 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
+	"sync"
+	"time"
+
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
 const (
-	typeName      = "ddns-allowlist"
-	xForwardedFor = "X-Forwarded-For"
-	cloudflareIP  = "Cf-Connecting-Ip"
+	typeName              = "ddns-allowlist"
+	defaultLookupInterval = 5 * time.Minute
 )
 
 // Define static error variable.
 var (
-	errNoHostListProvided = errors.New("no host list provided")
-	errNoRequestIP        = errors.New("could not find required IP address")
-	errParseIPAddress     = errors.New("could not parse IP address after DNS resolution")
-	errParseIPListAddress = errors.New("could not parse IP address from ipList")
+	errEmptySourceRangeHosts     = errors.New("sourceRangeHosts is empty, DDNSAllowLister not created")
+	errInvalidHTTPStatuscode     = errors.New("invalid HTTP status code")
+	errNoIPv4AddressFoundForHost = errors.New("no IPv4 addresses found for hostname")
 )
 
-// Config the plugin configuration.
-type Config struct {
-	LogLevel string   `json:"logLevel,omitempty"` // Log level (DEBUG, INFO, ERROR)
-	HostList []string `json:"hostList,omitempty"` // Add hosts to allowlist
-	IPList   []string `json:"ipList,omitempty"`   // Add additional IP addresses to allowlist
+// DdnsAllowListConfig holds the DDNS allowlist middleware plugin configuration.
+// This middleware limits allowed requests based on the client IP on a given hostname.
+// More info: https://github.com/taskmedia/ddns-whitelist
+type DdnsAllowListConfig struct {
+	// SourceRange defines the set of allowed IPs (or ranges of allowed IPs by using CIDR notation).
+	SourceRangeHosts []string            `json:"sourceRangeHosts,omitempty"`
+	SourceRangeIPs   []string            `json:"sourceRangeIps,omitempty"`
+	IPStrategy       *dynamic.IPStrategy `json:"ipStrategy,omitempty"`
+	// RejectStatusCode defines the HTTP status code used for refused requests.
+	// If not set, the default is 403 (Forbidden).
+	RejectStatusCode int `json:"rejectStatusCode,omitempty"`
+	// LogLevel defines on what level the middleware plugin should print log messages (DEBUG, INFO, ERROR).
+	LogLevel string `json:"logLevel,omitempty"`
+	// Lookup interval for new hostnames in seconds
+	LookupInterval int64 `json:"lookupInterval,omitempty"`
 }
 
-type (
-	allowedIPs []net.IP
-	requestIPs []net.IP
-)
+// ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
+type ddnsAllowLister struct {
+	next             http.Handler
+	allowLister      *ip.Checker
+	strategy         ip.Strategy
+	name             string
+	rejectStatusCode int
+	logger           *Logger
+	lastUpdate       time.Time
+	mu               sync.Mutex
+	sourceRangeHosts []string
+	sourceRangeIPs   []string
+	lookupInterval   time.Duration
+}
 
 // CreateConfig creates the default plugin configuration.
-func CreateConfig() *Config {
-	return &Config{
-		HostList: []string{},
-		IPList:   []string{},
-	}
-}
-
-// ddnsallowlist plugin.
-type ddnsallowlist struct {
-	config *Config
-	name   string
-	next   http.Handler
-	logger *Logger
+func CreateConfig() *DdnsAllowListConfig {
+	return &DdnsAllowListConfig{}
 }
 
 // New created a new DDNSallowlist plugin.
-func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	log := newLogger(config.LogLevel, name, typeName)
-	log.Debug("Creating middleware")
+func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name string) (http.Handler, error) {
+	logger := newLogger(config.LogLevel, name, typeName)
+	logger.Debug("Creating middleware")
 
-	if len(config.HostList) == 0 {
-		return nil, errNoHostListProvided
+	if len(config.SourceRangeHosts) == 0 {
+		return nil, errEmptySourceRangeHosts
 	}
 
-	return &ddnsallowlist{
-		name:   name,
-		next:   next,
-		config: config,
-		logger: log,
-	}, nil
+	rejectStatusCode := config.RejectStatusCode
+	// If RejectStatusCode is not given, default to Forbidden (403).
+	if rejectStatusCode == 0 {
+		rejectStatusCode = http.StatusForbidden
+	} else if http.StatusText(rejectStatusCode) == "" {
+		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
+	}
+
+	strategy, err := config.IPStrategy.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	lookupIntervall := defaultLookupInterval
+	if config.LookupInterval > 0 {
+		lookupIntervall = time.Duration(config.LookupInterval) * time.Second
+	}
+
+	// Initialize the ddnsAllowLister
+	dal := &ddnsAllowLister{
+		strategy:         strategy,
+		next:             next,
+		name:             name,
+		rejectStatusCode: rejectStatusCode,
+		logger:           logger,
+		sourceRangeHosts: config.SourceRangeHosts,
+		sourceRangeIPs:   config.SourceRangeIPs,
+		lookupInterval:   lookupIntervall,
+	}
+
+	// Initial update of trusted IPs
+	dal.updateTrustedIPs()
+
+	return dal, nil
+}
+
+// updateTrustedIPs updates the trusted IPs by resolving the hostnames and combining with the provided IP ranges.
+func (dal *ddnsAllowLister) updateTrustedIPs() {
+	dal.logger.Debug("Updating trusted IPs")
+	trustedIPs := []string{}
+
+	hostIPs := resolveHosts(*dal.logger, dal.sourceRangeHosts)
+	trustedIPs = append(trustedIPs, hostIPs...)
+	trustedIPs = append(trustedIPs, dal.sourceRangeIPs...)
+	dal.logger.Debugf("trusted IPs: %v", trustedIPs)
+
+	checker, err := ip.NewChecker(trustedIPs)
+	if err != nil {
+		dal.logger.Errorf("cannot parse CIDRs %s: %v", trustedIPs, err)
+		return
+	}
+
+	dal.lastUpdate = time.Now()
+	dal.allowLister = checker
 }
 
 // ServeHTTP ddnsallowlist.
-func (a *ddnsallowlist) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	log := a.logger
+func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	logger := dal.logger
+	logger.Debug("Serving middleware")
 
-	var aIPs allowedIPs
+	// Check if the trusted IPs need to be updated
+	dal.mu.Lock()
+	needsUpdate := time.Since(dal.lastUpdate) > dal.lookupInterval
+	if needsUpdate {
+		dal.updateTrustedIPs()
+	}
+	dal.mu.Unlock()
 
-	// Add allowed IPs from config
-	ipAllowlist, err := parseIPList(a.config.IPList)
+	clientIP := dal.strategy.GetIP(req)
+	err := dal.allowLister.IsAuthorized(clientIP)
 	if err != nil {
-		log.Error(err)
-		reject(http.StatusInternalServerError, rw, log)
+		logger.Debugf("Rejecting IP %s: %v", clientIP, err)
+		reject(logger, dal.rejectStatusCode, rw)
 		return
 	}
-	aIPs = append(aIPs, ipAllowlist...)
+	logger.Debugf("Accepting IP %s", clientIP)
 
-	// Add allowed hosts IPs from config
-	// TODO: this might be scheduled and not requested on every request
-	ipHostlist, err := resolveHostlist(a.config.HostList)
-	if err != nil {
-		log.Error(err)
-		reject(http.StatusInternalServerError, rw, log)
-		return
-	}
-	aIPs = append(aIPs, ipHostlist...)
-	log.Debugf("allowed IPs: [%s]", aIPs.String())
-
-	reqIPs := getRequestIPs(req)
-	if len(reqIPs) == 0 {
-		log.Error(errNoRequestIP)
-		reject(http.StatusForbidden, rw, log)
-		return
-	}
-	log.Debugf("request IP addresses: %v", reqIPs)
-
-	allowed := false
-	for _, reqIP := range reqIPs {
-		if aIPs.contains(reqIP) {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		log.Infof("request denied from %s, allowList: [%s]", reqIPs, aIPs.String())
-		reject(http.StatusForbidden, rw, log)
-		return
-	}
-
-	log.Infof("request allowed from %s, allowList: [%s]", reqIPs, aIPs.String())
-	a.next.ServeHTTP(rw, req)
+	dal.next.ServeHTTP(rw, req)
 }
 
-// parseIPList returns a list of IP addresses parsed from a string list.
-func parseIPList(ips []string) (allowedIPs, error) {
-	aIPs := make(allowedIPs, 0, len(ips))
-
-	for _, ip := range ips {
-		ipAddr := net.ParseIP(ip)
-		if ipAddr == nil {
-			return nil, fmt.Errorf("%w: %s", errParseIPListAddress, ip)
-		}
-		aIPs = append(aIPs, ipAddr)
-	}
-	return aIPs, nil
-}
-
-func (a allowedIPs) contains(ip net.IP) bool {
-	for _, aIP := range a {
-		if aIP.Equal(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-// getRemoteIP returns a list of IPs that are associated with this request.
-func getRequestIPs(req *http.Request) requestIPs {
-	var ips requestIPs
-
-	extractAndAppendHeaderIPs(xForwardedFor, req, &ips)
-	extractAndAppendHeaderIPs(cloudflareIP, req, &ips)
-	extractAndAppendRemoteIP(req.RemoteAddr, &ips)
-
-	return ips
-}
-
-func extractAndAppendHeaderIPs(header string, req *http.Request, ipList *requestIPs) {
-	hIP := req.Header.Get(header)
-	hIPs := strings.Split(hIP, ",")
-	for _, ipString := range hIPs {
-		ip := net.ParseIP(strings.TrimSpace(ipString))
-		if ip != nil {
-			*ipList = append(*ipList, ip)
-		}
-	}
-}
-
-func extractAndAppendRemoteIP(remoteAddr string, ipList *requestIPs) {
-	ipstr, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		ipstr = remoteAddr
-	}
-
-	ip := net.ParseIP(ipstr)
-	if ip != nil {
-		*ipList = append(*ipList, ip)
-	}
-}
-
-func resolveHostlist(hosts []string) (allowedIPs, error) {
-	aIps := allowedIPs{}
-
-	for _, host := range hosts {
-		ip, err := net.LookupIP(host)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %w", errParseIPAddress, err)
-		}
-
-		for _, i := range ip {
-			aIps = append(aIps, i)
-		}
-	}
-
-	return aIps, nil
-}
-
-func reject(statusCode int, rw http.ResponseWriter, log *Logger) {
+func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
 	rw.WriteHeader(statusCode)
 	_, err := rw.Write([]byte(http.StatusText(statusCode)))
 	if err != nil {
-		log.Errorf("could not write response: %v", err)
+		logger.Error(err)
 	}
 }
 
-func (a allowedIPs) String() string {
-	var builder strings.Builder
-	for i, ip := range a {
-		if i > 0 {
-			builder.WriteString(",")
+func resolveHosts(logger Logger, hosts []string) []string {
+	hostIPs := []string{}
+	for _, host := range hosts {
+		lookupIPs, err := net.LookupIP(host)
+		if err != nil {
+			logger.Errorf("Error looking up IP for host %s: %v", host, err)
+			break
 		}
-		builder.WriteString(ip.String())
+
+		currentHostIPs := []string{}
+		for _, lookupIP := range lookupIPs {
+			// Currently only IPv4 is supported
+			if isIPv4(lookupIP) {
+				currentHostIPs = append(currentHostIPs, lookupIP.String())
+			}
+		}
+
+		if len(currentHostIPs) == 0 {
+			logger.Errorf("%v: %s", errNoIPv4AddressFoundForHost, host)
+			break
+		}
+
+		hostIPs = append(hostIPs, currentHostIPs...)
 	}
-	return builder.String()
+	return hostIPs
+}
+
+// isIPv4 checks if the given net.IP is an IPv4 address.
+func isIPv4(ip net.IP) bool {
+	return ip.To4() != nil
 }
