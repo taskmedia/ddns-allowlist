@@ -230,6 +230,67 @@ func TestServeHTTP(t *testing.T) {
 		// 	},
 		// 	expectedError: errors.New("parsing CIDR trusted IPs <nil>: invalid CIDR address: invalid-ip"),
 		// },
+		{
+			desc: "access via xForwardedFor IP",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					Depth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"8.8.8.8"},
+				},
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "access via xForwardedFor second IP",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					Depth: 2,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"8.8.8.8, 1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "denied via xForwardedFor",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					Depth: 1,
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied via xForwardedFor with allowed RemoteAddress",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					Depth: 1,
+				},
+			},
+			req: &http.Request{
+				RemoteAddr: "8.8.8.8",
+				Header: map[string][]string{
+					"X-Forwarded-For": {"1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
 	}
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
