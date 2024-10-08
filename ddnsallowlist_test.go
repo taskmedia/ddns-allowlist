@@ -35,7 +35,7 @@ func TestNew(t *testing.T) {
 		desc       string
 		config     *DdnsAllowListConfig
 		err        error
-		ipstrategy ip.Strategy
+		ipstrategy ip.StrategyDdnswl
 	}{
 		{
 			desc:   "empty sourceRangeHosts",

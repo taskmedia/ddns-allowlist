@@ -12,10 +12,10 @@ const (
 	xForwardedFor = "X-Forwarded-For"
 )
 
-// Strategy a strategy for IP selection.
-type Strategy interface {
-	GetIP(req *http.Request) string
-}
+// // Strategy a strategy for IP selection.
+// type Strategy interface {
+// 	GetIP(req *http.Request) string
+// }
 
 // RemoteAddrStrategy a strategy that always return the remote address.
 type RemoteAddrStrategy struct{}
