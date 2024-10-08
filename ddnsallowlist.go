@@ -10,13 +10,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
 const (
-	typeName = "ddns-allowlist"
+	typeName              = "ddns-allowlist"
+	DefaultLookupInterval = 5 * time.Minute
 )
 
 // Define static error variable.
@@ -39,6 +42,8 @@ type DdnsAllowListConfig struct {
 	RejectStatusCode int `json:"rejectStatusCode,omitempty"`
 	// LogLevel defines on what level the middleware plugin should print log messages (DEBUG, INFO, ERROR).
 	LogLevel string `json:"logLevel,omitempty"`
+	// Lookup interval for new hostnames in seconds
+	LookupInterval int64 `json:"lookupInterval,omitempty"`
 }
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
@@ -49,6 +54,11 @@ type ddnsAllowLister struct {
 	name             string
 	rejectStatusCode int
 	logger           *Logger
+	lastUpdate       time.Time
+	mu               sync.Mutex
+	sourceRangeHosts []string
+	sourceRangeIPs   []string
+	lookupInterval   time.Duration
 }
 
 // CreateConfig creates the default plugin configuration.
@@ -73,40 +83,66 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, fmt.Errorf("%v: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
-	// TODO: known bug with current implementation: hostname will be looked up once not periodically
-	hostIPs := resolveHosts(*logger, config.SourceRangeHosts)
-
-	var trustedIPs []string
-	trustedIPs = append(trustedIPs, hostIPs...)
-	trustedIPs = append(trustedIPs, config.SourceRangeIPs...)
-	logger.Debugf("trustedIPs: %v", trustedIPs)
-
-	checker, err := ip.NewChecker(trustedIPs)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse CIDRs %s: %v", config.SourceRangeIPs, err)
-	}
-
 	strategy, err := config.IPStrategy.Get()
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debugf("Setting up ddnsAllowLister with sourceRange: %s", trustedIPs)
+	lookupIntervall := DefaultLookupInterval
+	if config.LookupInterval > 0 {
+		lookupIntervall = time.Duration(config.LookupInterval) * time.Second
+	}
 
-	return &ddnsAllowLister{
+	// Initialize the ddnsAllowLister
+	dal := &ddnsAllowLister{
 		strategy:         strategy,
-		allowLister:      checker,
 		next:             next,
 		name:             name,
 		rejectStatusCode: rejectStatusCode,
 		logger:           logger,
-	}, nil
+		sourceRangeHosts: config.SourceRangeHosts,
+		sourceRangeIPs:   config.SourceRangeIPs,
+		lookupInterval:   lookupIntervall,
+	}
+
+	// Initial update of trusted IPs
+	dal.updateTrustedIPs()
+
+	return dal, nil
+}
+
+// updateTrustedIPs updates the trusted IPs by resolving the hostnames and combining with the provided IP ranges.
+func (dal *ddnsAllowLister) updateTrustedIPs() {
+	dal.logger.Debug("Updating trusted IPs")
+	trustedIPs := []string{}
+
+	hostIPs := resolveHosts(*dal.logger, dal.sourceRangeHosts)
+	trustedIPs = append(trustedIPs, hostIPs...)
+	trustedIPs = append(trustedIPs, dal.sourceRangeIPs...)
+	dal.logger.Debugf("trusted IPs: %v", trustedIPs)
+
+	checker, err := ip.NewChecker(trustedIPs)
+	if err != nil {
+		dal.logger.Errorf("cannot parse CIDRs %s: %v", trustedIPs, err)
+		return
+	}
+
+	dal.lastUpdate = time.Now()
+	dal.allowLister = checker
 }
 
 // ServeHTTP ddnsallowlist.
 func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := dal.logger
 	logger.Debug("Serving middleware")
+
+	// Check if the trusted IPs need to be updated
+	dal.mu.Lock()
+	needsUpdate := time.Since(dal.lastUpdate) > dal.lookupInterval
+	if needsUpdate {
+		dal.updateTrustedIPs()
+	}
+	dal.mu.Unlock()
 
 	clientIP := dal.strategy.GetIP(req)
 	err := dal.allowLister.IsAuthorized(clientIP)

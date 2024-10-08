@@ -29,12 +29,14 @@ services:
     - "traefik.http.routers.whoami-allow.middlewares=ddnswl-allow@docker"
     - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-allowlist.hostList=localhost,dockerhost"
     - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-allowlist.logLevel=debug"
+    - "traefik.http.middlewares.ddnswl-allow.plugin.ddns-allowlist.lookupInterval=15"
     # deny
     - "traefik.http.routers.whoami-deny.rule=Host(`deny.whoami.localhost`)"
     - "traefik.http.routers.whoami-deny.entrypoints=web"
     - "traefik.http.routers.whoami-deny.middlewares=ddnswl-deny@docker"
     - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-allowlist.hostList=localhost,dns.google"
     - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-allowlist.logLevel=debug"
+    - "traefik.http.middlewares.ddnswl-deny.plugin.ddns-allowlist.lookupInterval=15"
     # # allow ipList
     # - "traefik.http.routers.whoami-allowip.rule=Host(`allow-ip.whoami.localhost`)"
     # - "traefik.http.routers.whoami-allowip.entrypoints=web"
