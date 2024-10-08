@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
+	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
 func TestCreateConfig(t *testing.T) {
@@ -22,9 +24,10 @@ func TestCreateConfig(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	testCases := []struct {
-		desc   string
-		config *DdnsAllowListConfig
-		err    error
+		desc       string
+		config     *DdnsAllowListConfig
+		err        error
+		ipstrategy ip.Strategy
 	}{
 		{
 			desc:   "empty sourceRangeHosts",
@@ -53,6 +56,39 @@ func TestNew(t *testing.T) {
 				LookupInterval:   10,
 			},
 		},
+		{
+			desc: "IP strategy RemoteAddress",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"example.com"},
+				IPStrategy:       &dynamic.IPStrategy{},
+			},
+			ipstrategy: &ip.RemoteAddrStrategy{},
+		},
+		{
+			desc: "IP strategy Depth",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"example.com"},
+				IPStrategy: &dynamic.IPStrategy{
+					Depth: 1,
+				},
+			},
+			ipstrategy: &ip.DepthStrategy{
+				Depth: 1,
+			},
+		},
+		// {
+		// 	desc: "IP strategy Pool",
+		// 	config: &DdnsAllowListConfig{
+		// 		SourceRangeHosts: []string{"example.com"},
+		// 		IPStrategy: &dynamic.IPStrategy{
+		// 			ExcludedIPs: []string{"1.2.3.4"},
+		// 		},
+		// 	},
+		// 	ipstrategy: &ip.PoolStrategy{
+		// 		// TODO: Checker can currently not be testet
+		// 		Checker: &ip.Checker{},
+		// 	},
+		// },
 	}
 
 	for _, tc := range testCases {
@@ -72,6 +108,10 @@ func TestNew(t *testing.T) {
 			if tc.config.LookupInterval != 0 {
 				expectedInterval := time.Duration(tc.config.LookupInterval) * time.Second
 				assert.Equal(t, expectedInterval, dal.(*ddnsAllowLister).lookupInterval)
+			}
+
+			if tc.config.IPStrategy != nil {
+				assert.Equal(t, tc.ipstrategy, dal.(*ddnsAllowLister).strategy)
 			}
 		})
 	}
