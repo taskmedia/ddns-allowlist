@@ -1,4 +1,4 @@
-// Package dynamic orignates from traefik/traefik and was extended by this repository
+// Package dynamic has its origin from traefik/traefik and was extended by this repository
 // It will overwrite existing types and functions (with Dnswl suffix)
 package dynamic
 

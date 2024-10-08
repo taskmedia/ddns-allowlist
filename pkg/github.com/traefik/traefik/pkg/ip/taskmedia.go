@@ -1,4 +1,5 @@
-// Package ip orignates from traefik/traefik and was extended by this repository
+// Package ip has its origin from traefik/traefik and was extended by this repository
+// This file extends the package with an additional strategy
 package ip
 
 import (
