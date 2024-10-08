@@ -231,7 +231,7 @@ func TestServeHTTP(t *testing.T) {
 		// 	expectedError: errors.New("parsing CIDR trusted IPs <nil>: invalid CIDR address: invalid-ip"),
 		// },
 		{
-			desc: "access via xForwardedFor IP",
+			desc: "access via xForwardedFor depth IP",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
 				IPStrategy: &dynamic.IPStrategy{
@@ -246,7 +246,7 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "access via xForwardedFor second IP",
+			desc: "access via xForwardedFor depth second IP",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
 				IPStrategy: &dynamic.IPStrategy{
@@ -261,7 +261,7 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "denied via xForwardedFor",
+			desc: "denied via xForwardedFor depth",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
 				IPStrategy: &dynamic.IPStrategy{
@@ -276,7 +276,7 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusForbidden,
 		},
 		{
-			desc: "denied via xForwardedFor with allowed RemoteAddress",
+			desc: "denied via xForwardedFor depth with allowed RemoteAddress",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
 				IPStrategy: &dynamic.IPStrategy{
@@ -287,6 +287,36 @@ func TestServeHTTP(t *testing.T) {
 				RemoteAddr: "8.8.8.8",
 				Header: map[string][]string{
 					"X-Forwarded-For": {"1.2.3.4"},
+				},
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "access via xForwardedFor excluded IPs",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					ExcludedIPs: []string{"1.2.3.4"},
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"8.8.8.8"},
+				},
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "denied via xForwardedFor excluded IPs",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+				IPStrategy: &dynamic.IPStrategy{
+					ExcludedIPs: []string{"1.2.3.4", "8.8.8.8"},
+				},
+			},
+			req: &http.Request{
+				Header: map[string][]string{
+					"X-Forwarded-For": {"8.8.8.8"},
 				},
 			},
 			expectedStatus: http.StatusForbidden,
