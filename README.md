@@ -65,7 +65,7 @@ http:
           # also see: https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/#ipstrategy
           ipStrategy:
             depth: 1
-            CloudflareDepth: 1
+            cloudflareDepth: 1
             excludedIPs:
               - 4.3.2.1
           # optional: lookup interval for DNS hosts (default: 5 min)
