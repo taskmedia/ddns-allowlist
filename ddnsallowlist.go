@@ -167,6 +167,7 @@ func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 }
 
 func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	rw.WriteHeader(statusCode)
 	_, err := rw.Write([]byte(http.StatusText(statusCode)))
 	if err != nil {
