@@ -19,7 +19,7 @@ import (
 
 const (
 	typeName              = "ddns-allowlist"
-	DefaultLookupInterval = 5 * time.Minute
+	defaultLookupInterval = 5 * time.Minute
 )
 
 // Define static error variable.
@@ -80,7 +80,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	if rejectStatusCode == 0 {
 		rejectStatusCode = http.StatusForbidden
 	} else if http.StatusText(rejectStatusCode) == "" {
-		return nil, fmt.Errorf("%v: %d", errInvalidHTTPStatuscode, rejectStatusCode)
+		return nil, fmt.Errorf("%w: %d", errInvalidHTTPStatuscode, rejectStatusCode)
 	}
 
 	strategy, err := config.IPStrategy.Get()
@@ -88,7 +88,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 		return nil, err
 	}
 
-	lookupIntervall := DefaultLookupInterval
+	lookupIntervall := defaultLookupInterval
 	if config.LookupInterval > 0 {
 		lookupIntervall = time.Duration(config.LookupInterval) * time.Second
 	}

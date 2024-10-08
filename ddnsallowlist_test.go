@@ -1,3 +1,7 @@
+// Package ddns_allowlist dynamic DNS allowlist
+//
+//revive:disable-next-line:var-naming
+//nolint:stylecheck
 package ddns_allowlist
 
 import (
