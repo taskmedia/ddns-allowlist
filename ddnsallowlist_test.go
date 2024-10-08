@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -124,7 +125,7 @@ func TestNew(t *testing.T) {
 
 func TestUpdateTrustedIPs(t *testing.T) {
 	t.Run("update trusted IPs", func(t *testing.T) {
-		logger := newLogger("DEBUG", "test", "ddns_allowlist")
+		logger := newLogger("DEBUG", "test", "TestUpdateTrustedIPs")
 		dal := &ddnsAllowLister{
 			logger:           logger,
 			sourceRangeHosts: []string{"dns.google"},
@@ -349,6 +350,39 @@ func TestServeHTTP(t *testing.T) {
 	}
 }
 
+func TestReject(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		status int
+	}{
+		{
+			desc:   "default reject status",
+			status: http.StatusForbidden,
+		},
+		{
+			desc:   "default ok status",
+			status: http.StatusOK,
+		},
+		{
+			desc:   "custom status",
+			status: http.StatusTeapot,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			logger := newLogger("DEBUG", "test", "TestReject")
+			rec := httptest.NewRecorder()
+
+			reject(logger, tc.status, rec)
+
+			assert.Equal(t, tc.status, rec.Code)
+		})
+	}
+}
+
 func TestResolveHosts(t *testing.T) {
 	testCases := []struct {
 		desc            string
@@ -384,6 +418,38 @@ func TestResolveHosts(t *testing.T) {
 			hostIPs := resolveHosts(*logger, tC.hosts)
 			sort.Strings(hostIPs)
 			assert.Equal(t, tC.expectedHostIPs, hostIPs)
+		})
+	}
+}
+
+func TestIsIPv4(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		ip       net.IP
+		expected bool
+	}{
+		{
+			desc:     "IPv4",
+			ip:       net.ParseIP("1.2.3.4"),
+			expected: true,
+		},
+		{
+			desc:     "IPv6",
+			ip:       net.ParseIP("2001:01ce:cafe:0000:face:da7a:c0de:1337"),
+			expected: false,
+		},
+		{
+			desc:     "IPv6 short",
+			ip:       net.ParseIP("::1"),
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expected, isIPv4(tc.ip))
 		})
 	}
 }
