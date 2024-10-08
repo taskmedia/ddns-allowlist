@@ -21,6 +21,10 @@ import (
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
+var (
+	errNoTrustedIPs = errors.New("no trusted IPs provided")
+)
+
 func TestCreateConfig(t *testing.T) {
 	t.Run("create config", func(t *testing.T) {
 		config := CreateConfig()
@@ -100,24 +104,27 @@ func TestNew(t *testing.T) {
 	for _, tc := range testCases {
 		// t.Parallel()
 		t.Run(tc.desc, func(t *testing.T) {
-			dal, err := New(nil, nil, tc.config, "test")
+			dal, err := New(context.TODO(), nil, tc.config, "test")
 
 			if err != nil {
 				assert.Equal(t, tc.err, err)
 				return
 			}
 
+			al, ok := dal.(*ddnsAllowLister)
+			require.True(t, ok)
+
 			if tc.config.RejectStatusCode != 0 {
-				assert.Equal(t, tc.config.RejectStatusCode, dal.(*ddnsAllowLister).rejectStatusCode)
+				assert.Equal(t, tc.config.RejectStatusCode, al.rejectStatusCode)
 			}
 
 			if tc.config.LookupInterval != 0 {
 				expectedInterval := time.Duration(tc.config.LookupInterval) * time.Second
-				assert.Equal(t, expectedInterval, dal.(*ddnsAllowLister).lookupInterval)
+				assert.Equal(t, expectedInterval, al.lookupInterval)
 			}
 
 			if tc.config.IPStrategy != nil {
-				assert.Equal(t, tc.ipstrategy, dal.(*ddnsAllowLister).strategy)
+				assert.Equal(t, tc.ipstrategy, al.strategy)
 			}
 		})
 	}
@@ -132,11 +139,12 @@ func TestUpdateTrustedIPs(t *testing.T) {
 			sourceRangeIPs:   []string{"1.2.3.4", "4.3.2.1"},
 		}
 
-		dal.updateTrustedIPs()
-		assert.Nil(t, dal.allowLister.IsAuthorized("1.2.3.4"), "sasf")
-		assert.Nil(t, dal.allowLister.IsAuthorized("4.3.2.1"), "sasf")
-		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.4.4"), "sasf")
-		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.8.8"), "sasf")
+		err := dal.updateTrustedIPs()
+		require.NoError(t, err)
+		assert.NoError(t, dal.allowLister.IsAuthorized("1.2.3.4"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("4.3.2.1"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.4.4"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.8.8"))
 	})
 }
 
@@ -207,7 +215,7 @@ func TestServeHTTP(t *testing.T) {
 			req: &http.Request{
 				RemoteAddr: "127.0.0.1",
 			},
-			expectedError: errors.New("no trusted IPs provided"),
+			expectedError: errNoTrustedIPs,
 		},
 		{
 			desc: "allowed ip",
