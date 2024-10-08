@@ -16,3 +16,13 @@ ingressRoute:
 logs:
   general:
     level: DEBUG
+
+ports:
+  traefik:
+    expose:
+      default: true
+  web:
+    exposedPort: 8080
+  websecure:
+    expose:
+      default: false
