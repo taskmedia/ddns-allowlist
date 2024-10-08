@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -154,6 +153,8 @@ func TestUpdateTrustedIPs(t *testing.T) {
 		assert.NoError(t, dal.allowLister.IsAuthorized("4.3.2.1"))
 		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.4.4"))
 		assert.NoError(t, dal.allowLister.IsAuthorized("8.8.8.8"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("2001:4860:4860::8844"))
+		assert.NoError(t, dal.allowLister.IsAuthorized("2001:4860:4860::8888"))
 	})
 }
 
@@ -177,6 +178,16 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			desc: "allowed host internal - localhost IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "::1",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
 			desc: "allowed host external - dns.google",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"dns.google"},
@@ -187,12 +198,32 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			desc: "allowed host external - dns.google IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+			},
+			req: &http.Request{
+				RemoteAddr: "2001:4860:4860::8888",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
 			desc: "denied host internal - localhost",
 			config: &DdnsAllowListConfig{
 				SourceRangeHosts: []string{"localhost"},
 			},
 			req: &http.Request{
 				RemoteAddr: "10.10.10.10",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied host internal - localhost IPv6",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "c0de::",
 			},
 			expectedStatus: http.StatusForbidden,
 		},
@@ -491,17 +522,25 @@ func TestResolveHosts(t *testing.T) {
 		{
 			desc:            "localhost",
 			hosts:           []string{"localhost"},
-			expectedHostIPs: []string{"127.0.0.1"},
+			expectedHostIPs: []string{"127.0.0.1", "::1"},
 		},
 		{
-			desc:            "single host",
-			hosts:           []string{"dns.google"},
-			expectedHostIPs: []string{"8.8.4.4", "8.8.8.8"},
+			desc:  "single host",
+			hosts: []string{"dns.google"},
+			expectedHostIPs: []string{
+				"2001:4860:4860::8844", "2001:4860:4860::8888",
+				"8.8.4.4", "8.8.8.8",
+			},
 		},
 		{
-			desc:            "multiple hosts",
-			hosts:           []string{"dns.google", "cloudflare-dns.com"},
-			expectedHostIPs: []string{"104.16.248.249", "104.16.249.249", "8.8.4.4", "8.8.8.8"},
+			desc:  "multiple hosts",
+			hosts: []string{"dns.google", "cloudflare-dns.com"},
+			expectedHostIPs: []string{
+				"104.16.248.249", "104.16.249.249",
+				"2001:4860:4860::8844", "2001:4860:4860::8888",
+				"2606:4700::6810:f8f9", "2606:4700::6810:f9f9",
+				"8.8.4.4", "8.8.8.8",
+			},
 		},
 	}
 
@@ -511,38 +550,6 @@ func TestResolveHosts(t *testing.T) {
 			hostIPs := resolveHosts(*logger, tC.hosts)
 			sort.Strings(hostIPs)
 			assert.Equal(t, tC.expectedHostIPs, hostIPs)
-		})
-	}
-}
-
-func TestIsIPv4(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		ip       net.IP
-		expected bool
-	}{
-		{
-			desc:     "IPv4",
-			ip:       net.ParseIP("1.2.3.4"),
-			expected: true,
-		},
-		{
-			desc:     "IPv6",
-			ip:       net.ParseIP("2001:01ce:cafe:0000:face:da7a:c0de:1337"),
-			expected: false,
-		},
-		{
-			desc:     "IPv6 short",
-			ip:       net.ParseIP("::1"),
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			t.Parallel()
-
-			assert.Equal(t, tc.expected, isIPv4(tc.ip))
 		})
 	}
 }
