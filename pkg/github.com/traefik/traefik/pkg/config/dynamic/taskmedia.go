@@ -24,7 +24,6 @@ type IPStrategyDnswl struct {
 //nolint:ireturn
 func (s *IPStrategyDnswl) GetDnswl() (ip.StrategyDdnswl, error) {
 	if s == nil {
-
 		return &ip.RemoteAddrStrategy{}, nil
 	}
 

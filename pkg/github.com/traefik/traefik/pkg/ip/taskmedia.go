@@ -1,5 +1,6 @@
 // Package ip has its origin from traefik/traefik and was extended by this repository
 // This file extends the package with an additional strategy
+// It will add and overwrite existing types and functions (with Dnswl suffix)
 package ip
 
 import (
@@ -11,7 +12,7 @@ const (
 	cloudflareIP = "Cf-Connecting-Ip"
 )
 
-// Strategy a strategy for IP selection.
+// StrategyDdnswl a strategy for IP selection.
 type StrategyDdnswl interface {
 	GetIP(req *http.Request) string
 	Name() string
@@ -33,22 +34,22 @@ func (s *CloudflareDepthStrategy) GetIP(req *http.Request) string {
 	return strings.TrimSpace(xffs[len(xffs)-s.CloudflareDepth])
 }
 
-// Name return the strategy name for Cloudflare
+// Name return the strategy name for Cloudflare.
 func (s *CloudflareDepthStrategy) Name() string {
 	return "CloudflareDepthStrategy"
 }
 
-// Name return the strategy name for remote address
+// Name return the strategy name for remote address.
 func (s *RemoteAddrStrategy) Name() string {
 	return "RemoteAddrStrategy"
 }
 
-// Name return the strategy name for depth (X-Forwarded-For)
+// Name return the strategy name for depth (X-Forwarded-For).
 func (s *DepthStrategy) Name() string {
 	return "DepthStrategy"
 }
 
-// Name return the strategy name for pool (X-Forwarded-For)
+// Name return the strategy name for pool (X-Forwarded-For).
 func (s *PoolStrategy) Name() string {
 	return "PoolStrategy"
 }
