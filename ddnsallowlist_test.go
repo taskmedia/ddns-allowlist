@@ -6,6 +6,7 @@ package ddns_allowlist
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -144,6 +145,7 @@ func TestServeHTTP(t *testing.T) {
 		config         *DdnsAllowListConfig
 		req            *http.Request
 		expectedStatus int
+		expectedError  error
 	}{
 		{
 			desc: "allowed host internal - localhost",
@@ -155,6 +157,79 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 		},
+		{
+			desc: "allowed host external - dns.google",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"dns.google"},
+			},
+			req: &http.Request{
+				RemoteAddr: "8.8.8.8",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "denied host internal - localhost",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "10.10.10.10",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied host internal - custom status",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+				RejectStatusCode: http.StatusTeapot,
+			},
+			req: &http.Request{
+				RemoteAddr: "10.10.10.10",
+			},
+			expectedStatus: http.StatusTeapot,
+		},
+		{
+			desc: "denied host external",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+			},
+			req: &http.Request{
+				RemoteAddr: "1.2.3.4",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "invalid host list",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"invalid"},
+			},
+			req: &http.Request{
+				RemoteAddr: "127.0.0.1",
+			},
+			expectedError: errors.New("no trusted IPs provided"),
+		},
+		{
+			desc: "allowed ip",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts: []string{"localhost"},
+				SourceRangeIPs:   []string{"1.2.3.4"},
+			},
+			req: &http.Request{
+				RemoteAddr: "1.2.3.4",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		// {
+		// 	desc: "invalid ip list",
+		// 	config: &DdnsAllowListConfig{
+		// 		SourceRangeHosts: []string{"localhost"},
+		// 		SourceRangeIPs:   []string{"invalid-ip"},
+		// 	},
+		// 	req: &http.Request{
+		// 		RemoteAddr: "127.0.0.1",
+		// 	},
+		// 	expectedError: errors.New("parsing CIDR trusted IPs <nil>: invalid CIDR address: invalid-ip"),
+		// },
 	}
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -168,6 +243,10 @@ func TestServeHTTP(t *testing.T) {
 			ctx := context.Background()
 			handler, err := New(ctx, next, tc.config, "ddns-allowlist")
 
+			if tc.expectedError != nil {
+				require.Equal(t, tc.expectedError, err)
+				return
+			}
 			require.NoError(t, err)
 			assert.NotNil(t, handler)
 
