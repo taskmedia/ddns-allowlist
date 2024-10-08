@@ -117,6 +117,23 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestUpdateTrustedIPs(t *testing.T) {
+	t.Run("update trusted IPs", func(t *testing.T) {
+		logger := newLogger("DEBUG", "test", "ddns_allowlist")
+		dal := &ddnsAllowLister{
+			logger:           logger,
+			sourceRangeHosts: []string{"dns.google"},
+			sourceRangeIPs:   []string{"1.2.3.4", "4.3.2.1"},
+		}
+
+		dal.updateTrustedIPs()
+		assert.Nil(t, dal.allowLister.IsAuthorized("1.2.3.4"), "sasf")
+		assert.Nil(t, dal.allowLister.IsAuthorized("4.3.2.1"), "sasf")
+		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.4.4"), "sasf")
+		assert.Nil(t, dal.allowLister.IsAuthorized("8.8.8.8"), "sasf")
+	})
+}
+
 func TestResolveHosts(t *testing.T) {
 	testCases := []struct {
 		desc            string
