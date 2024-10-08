@@ -21,9 +21,7 @@ import (
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
 )
 
-var (
-	errNoTrustedIPs = errors.New("no trusted IPs provided")
-)
+var errNoTrustedIPs = errors.New("no trusted IPs provided")
 
 func TestCreateConfig(t *testing.T) {
 	t.Run("create config", func(t *testing.T) {
@@ -105,7 +103,6 @@ func TestNew(t *testing.T) {
 		// t.Parallel()
 		t.Run(tc.desc, func(t *testing.T) {
 			dal, err := New(context.TODO(), nil, tc.config, "test")
-
 			if err != nil {
 				assert.Equal(t, tc.err, err)
 				return
