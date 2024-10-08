@@ -490,17 +490,25 @@ func TestResolveHosts(t *testing.T) {
 		{
 			desc:            "localhost",
 			hosts:           []string{"localhost"},
-			expectedHostIPs: []string{"127.0.0.1"},
+			expectedHostIPs: []string{"127.0.0.1", "::1"},
 		},
 		{
-			desc:            "single host",
-			hosts:           []string{"dns.google"},
-			expectedHostIPs: []string{"8.8.4.4", "8.8.8.8"},
+			desc:  "single host",
+			hosts: []string{"dns.google"},
+			expectedHostIPs: []string{
+				"2001:4860:4860::8844", "2001:4860:4860::8888",
+				"8.8.4.4", "8.8.8.8",
+			},
 		},
 		{
-			desc:            "multiple hosts",
-			hosts:           []string{"dns.google", "cloudflare-dns.com"},
-			expectedHostIPs: []string{"104.16.248.249", "104.16.249.249", "8.8.4.4", "8.8.8.8"},
+			desc:  "multiple hosts",
+			hosts: []string{"dns.google", "cloudflare-dns.com"},
+			expectedHostIPs: []string{
+				"104.16.248.249", "104.16.249.249",
+				"2001:4860:4860::8844", "2001:4860:4860::8888",
+				"2606:4700::6810:f8f9", "2606:4700::6810:f9f9",
+				"8.8.4.4", "8.8.8.8",
+			},
 		},
 	}
 
