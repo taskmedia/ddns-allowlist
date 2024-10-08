@@ -49,6 +49,7 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 		},
 		_info: func(args ...interface{}) {
 			prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, ">"}, args...)
+			//nolint:errcheck
 			fmt.Fprintln(os.Stdout, prefixArgs...)
 		},
 		_error: func(args ...interface{}) {
@@ -59,6 +60,7 @@ func newLogger(_logLevel, middleware, middlewareType string) *Logger {
 		},
 		_infof: func(format string, args ...interface{}) {
 			f := getTimestamp() + " " + prefixInfo + " > " + format + "\n"
+			//nolint:errcheck
 			fmt.Fprintf(os.Stdout, f, args...)
 		},
 		_errorf: func(format string, args ...interface{}) {
