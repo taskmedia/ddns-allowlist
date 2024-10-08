@@ -22,7 +22,7 @@ type IPStrategyDnswl struct {
 // Depth override the ExcludedIPs.
 //
 //nolint:ireturn
-func (s *IPStrategyDnswl) GetDnswl() (ip.Strategy, error) {
+func (s *IPStrategyDnswl) GetDnswl() (ip.StrategyDdnswl, error) {
 	if s == nil {
 		return &ip.RemoteAddrStrategy{}, nil
 	}

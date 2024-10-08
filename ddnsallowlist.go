@@ -50,7 +50,7 @@ type DdnsAllowListConfig struct {
 type ddnsAllowLister struct {
 	next             http.Handler
 	allowLister      *ip.Checker
-	strategy         ip.Strategy
+	strategy         ip.StrategyDdnswl
 	name             string
 	rejectStatusCode int
 	logger           *Logger
@@ -87,6 +87,7 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	if err != nil {
 		return nil, err
 	}
+	logger.Debugf("using strategy: %v", strategy.Name())
 
 	lookupIntervall := defaultLookupInterval
 	if config.LookupInterval > 0 {
