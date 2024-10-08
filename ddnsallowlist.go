@@ -106,13 +106,16 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 	}
 
 	// Initial update of trusted IPs
-	dal.updateTrustedIPs()
+	err = dal.updateTrustedIPs()
+	if err != nil {
+		return nil, err
+	}
 
 	return dal, nil
 }
 
 // updateTrustedIPs updates the trusted IPs by resolving the hostnames and combining with the provided IP ranges.
-func (dal *ddnsAllowLister) updateTrustedIPs() {
+func (dal *ddnsAllowLister) updateTrustedIPs() error {
 	dal.logger.Debug("Updating trusted IPs")
 	trustedIPs := []string{}
 
@@ -123,12 +126,12 @@ func (dal *ddnsAllowLister) updateTrustedIPs() {
 
 	checker, err := ip.NewChecker(trustedIPs)
 	if err != nil {
-		dal.logger.Errorf("cannot parse CIDRs %s: %v", trustedIPs, err)
-		return
+		return err
 	}
 
 	dal.lastUpdate = time.Now()
 	dal.allowLister = checker
+	return nil
 }
 
 // ServeHTTP ddnsallowlist.
@@ -140,7 +143,13 @@ func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	dal.mu.Lock()
 	needsUpdate := time.Since(dal.lastUpdate) > dal.lookupInterval
 	if needsUpdate {
-		dal.updateTrustedIPs()
+		err := dal.updateTrustedIPs()
+		if err != nil {
+			dal.mu.Unlock()
+			logger.Error(err)
+			reject(logger, dal.rejectStatusCode, rw)
+			return
+		}
 	}
 	dal.mu.Unlock()
 
