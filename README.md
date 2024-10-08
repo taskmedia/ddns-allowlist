@@ -53,12 +53,20 @@ http:
     ddns-allowlist-router:
       plugin:
         ddns-allowlist:
-          # optional: log level for the plugin (allowed: ERROR, INFO, DEBUG)
+          # optional: log level for the plugin (allowed: ERROR, INFO, DEBUG, default: ERROR)
           logLevel: ERROR
           # hosts to dynamically add to allowlist via DNS lookup
-          hostList:
+          sourceRangeHosts:
             - my.router.ddns.tld
           # optional: IP addresses to allowlist
-          ipList:
+          sourceRangeIps:
             - 1.2.3.4
+          # optional: IP strategy to determine the client IP address (default: RemoteAddr)
+          # also see: https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/#ipstrategy
+          ipStrategy:
+            depth: 1
+            excludedIPs:
+              - 4.3.2.1
+          # optional: lookup interval for DNS hosts (default: 5 min)
+          lookupInterval: 60
 ```
