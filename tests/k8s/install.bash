@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Function to check if a namespace exists, if not create it
+ensure_namespace() {
+  local ns=$1
+  if ! kubectl get namespace "$ns" > /dev/null 2>&1; then
+      kubectl create namespace "$ns"
+  fi
+}
+
+tunnel_start() {
+  nohup minikube tunnel &
+}
+tunnel_stop() {
+  pgrep -f minikube | xargs kill
+}
+
+# get directory of this script
+DIR_TESTS_K8s="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# exit if context is not minikube
+kubectl config current-context | grep minikube || { echo "Context is not minikube"; exit 1; }
+
+ensure_namespace ingress
+kubectl config set-context --current --namespace=ingress
+
+# ensure ip can be assigned by minikube tunnel
+tunnel_start
+
+# check if traefik repo already exists if not add it
+helm repo list | grep traefik || helm repo add traefik https://helm.traefik.io/traefik
+
+# install default traefik with Helm
+helm upgrade --install traefik \
+  traefik/traefik \
+  --namespace ingress \
+  --values "${DIR_TESTS_K8s}/traefik-values.yml" \
+  --wait
+
+# deploy demo application
+ensure_namespace whoami
+kubectl apply -f "${DIR_TESTS_K8s}/resources" --namespace whoami
+
+IP_TRAEFIK=$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].status.podIP}')
+# get first IP address
+IP_TUNNEL="${IP_TRAEFIK%.*}.1"
+
+# create a k8s patch to update the middleware to add minikube tunneling IP to whitelist
+kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --type merge -p "{
+    \"spec\": {
+        \"plugin\": {
+            \"ddns-allowlist\": {
+                \"sourceRangeIps\": [
+                    \"${IP_TUNNEL}\"
+                ]
+            }
+        }
+    }
+}"
+
+sleep 15
+
+# check http response code
+curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
+curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8080 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
+
+# start tunnel in foreground
+tunnel_stop
+# minikube tunnel
