@@ -1,9 +1,25 @@
 # Traefik installation with DDNS allowlist plugin
-experimental:
-  plugins:
-    ddns-allowlist:
-      moduleName: "github.com/taskmedia/ddns-allowlist"
-      version: v1.5.2
+
+# Plugin upstream
+# experimental:
+#   plugins:
+#     ddns-allowlist:
+#       moduleName: "github.com/taskmedia/ddns-allowlist"
+#       version: v1.5.2
+
+# Plugin local
+deployment:
+  additionalVolumes:
+  - name: plugin-ddnswl
+    hostPath:
+      # requires: `minikube mount ./:/ddnswl`
+      path: /ddnswl
+      type: Directory
+additionalVolumeMounts:
+- name: plugin-ddnswl
+  mountPath: /plugins-local/src/github.com/taskmedia/ddns-allowlist
+additionalArguments:
+- "--experimental.localPlugins.ddns-allowlist.modulename=github.com/taskmedia/ddns-allowlist"
 
 globalArguments:
 - "--global.checknewversion=false"

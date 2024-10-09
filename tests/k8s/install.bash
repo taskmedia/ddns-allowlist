@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# get directory of this script
+DIR_TESTS_K8s="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # Function to check if a namespace exists, if not create it
 ensure_namespace() {
   local ns=$1
@@ -8,15 +11,12 @@ ensure_namespace() {
   fi
 }
 
-tunnel_start() {
+minikube_tunnel_start() {
   nohup minikube tunnel &
 }
-tunnel_stop() {
-  pgrep -f minikube | xargs kill
+minikube_mount_start() {
+  nohup minikube mount "${DIR_TESTS_K8s}/../..:/ddnswl" &
 }
-
-# get directory of this script
-DIR_TESTS_K8s="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # exit if context is not minikube
 kubectl config current-context | grep minikube || { echo "Context is not minikube"; exit 1; }
@@ -25,7 +25,9 @@ ensure_namespace ingress
 kubectl config set-context --current --namespace=ingress
 
 # ensure ip can be assigned by minikube tunnel
-tunnel_start
+minikube_tunnel_start
+# ensure repo can be assigned by minikube via volume
+minikube_mount_start
 
 # check if traefik repo already exists if not add it
 helm repo list | grep traefik || helm repo add traefik https://helm.traefik.io/traefik
@@ -63,7 +65,3 @@ sleep 15
 # check http response code
 curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
 curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8080 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
-
-# start tunnel in foreground
-tunnel_stop
-# minikube tunnel
