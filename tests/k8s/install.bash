@@ -64,7 +64,7 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
 
 echo "-------------------------------------"
 kubectl get pod --all-namespaces
-sleep 30
+sleep 15
 kubectl get pod --all-namespaces
 echo "-------------------------------------"
 kubectl get svc --all-namespaces
