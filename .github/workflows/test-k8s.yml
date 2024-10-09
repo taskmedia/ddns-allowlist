@@ -1,0 +1,30 @@
+name: Test Kubernetes
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  test-k8s:
+    name: Main Process
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: azure/setup-helm@v4.2.0
+      with:
+        version: v3.16.1
+
+    - uses: medyagh/setup-minikube@v0.0.18
+
+    - name: Install and Tests
+      shell: bash
+      run: ./tests/k8s/install.bash
+
+    - name: Uninstall
+      shell: bash
+      run: ./tests/k8s/install.bash
