@@ -8,9 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-
   test-k8s:
-    name: Main Process
+    name: Test k8s
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
