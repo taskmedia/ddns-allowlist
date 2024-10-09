@@ -12,7 +12,7 @@ ensure_namespace() {
 }
 
 minikube_tunnel_start() {
-  nohup minikube tunnel &
+  nohup minikube tunnel --bind-address="127.0.0.1" &
 }
 minikube_mount_start() {
   nohup minikube mount "${DIR_TESTS_K8s}/../..:/ddnswl" &
