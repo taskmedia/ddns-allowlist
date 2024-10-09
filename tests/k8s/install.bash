@@ -65,6 +65,7 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
 echo "-------------------------------------"
 kubectl get pod --all-namespaces
 sleep 15
+sleep 15
 kubectl get pod --all-namespaces
 echo "-------------------------------------"
 kubectl get svc --all-namespaces
@@ -76,6 +77,12 @@ echo "-------------------------------------"
 curl http://deny.whoami.localhost:8080 -v || true
 echo "-------------------------------------"
 kubectl logs pod/$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')
+echo "-------------------------------------"
+curl http://localhost:9000/api/http/routers | jq
+echo "-------------------------------------"
+curl http://localhost:9000/api/http/middlewares | jq
+echo "-------------------------------------"
+curl http://localhost:9000/api/http/services | jq
 echo "-------------------------------------"
 
 # check http response code
