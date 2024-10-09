@@ -60,7 +60,11 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
     }
 }"
 
+kubectl get pod --all-namespaces
 sleep 15
+kubectl get pod --all-namespaces
+sleep 15
+kubectl get pod --all-namespaces
 
 # check http response code
 curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
