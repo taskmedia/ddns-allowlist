@@ -12,7 +12,7 @@ ensure_namespace() {
 }
 
 minikube_tunnel_start() {
-  nohup minikube tunnel &
+  nohup minikube tunnel --bind-address="127.0.0.1" &
 }
 minikube_mount_start() {
   nohup minikube mount "${DIR_TESTS_K8s}/../..:/ddnswl" &
@@ -41,7 +41,11 @@ helm upgrade --install traefik \
 
 # deploy demo application
 ensure_namespace whoami
-kubectl apply -f "${DIR_TESTS_K8s}/resources" --namespace whoami
+kubectl apply -f "${DIR_TESTS_K8s}/resources/service.yml" --namespace whoami
+kubectl wait --namespace whoami --for=condition=ready pod -l app=whoami --timeout=30s
+kubectl apply -f "${DIR_TESTS_K8s}/resources/default.yml" --namespace whoami
+kubectl apply -f "${DIR_TESTS_K8s}/resources/allow.yml" --namespace whoami
+kubectl apply -f "${DIR_TESTS_K8s}/resources/deny.yml" --namespace whoami
 
 IP_TRAEFIK=$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].status.podIP}')
 # get first IP address
@@ -60,8 +64,11 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
     }
 }"
 
-sleep 15
+# wait for IngressRoutes to be available
+sleep 5
 
 # check http response code
 curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
 curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8080 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
+
+kubectl logs pod/"$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')"
