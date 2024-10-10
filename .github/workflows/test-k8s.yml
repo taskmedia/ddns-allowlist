@@ -20,6 +20,22 @@ jobs:
 
     - uses: medyagh/setup-minikube@v0.0.18
 
+    - name: Test nslookup
+      shell: bash
+      run: nslookup dns.google
+
+    - name: test k8s dns
+      shell: bash
+      run: |
+        kubectl run \
+            --attach \
+            --image=docker.io/busybox \
+            --restart=Never \
+            --rm \
+            nslookup \
+            -- \
+            nslookup dns.google
+
     - name: Install and Tests
       shell: bash
       run: ./tests/k8s/install.bash
