@@ -3,7 +3,6 @@
 // It will add and overwrite existing types and functions
 //
 // source: https://github.com/traefik/traefik/blob/2560626419eaaf2b85982bdb3a70f74953299c72/pkg/ip/strategy.go
-
 package ip
 
 import (

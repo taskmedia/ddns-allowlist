@@ -68,6 +68,3 @@ issues:
         - goconst
         - funlen
         - godot
-
-  exclude-files:
-    - pkg/github.com/traefik/traefik/

@@ -1,5 +1,8 @@
+// Package ip has its origin from traefik/traefik and was extended by this repository
+// This file extends the package with an additional strategy
+// It will add and overwrite existing types and functions
+//
 // source: https://github.com/traefik/traefik/blob/8946dd1898aa0b4d02cf1e4684629c151d8a1f6e/pkg/ip/checker.go
-
 package ip
 
 import (
@@ -8,6 +11,14 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+)
+
+var (
+	errCanNotParseIPaddress  = errors.New("can't parse IP from address")
+	errCIDRTrustedIPs        = errors.New("parsing CIDR trusted IPs")
+	errEmptyIP               = errors.New("empty IP address")
+	errMatchedNoneTrustedIPs = errors.New("matched none of the trusted IPs")
+	errNoTrustedIPsProvided  = errors.New("no trusted IPs provided")
 )
 
 // Checker allows to check that addresses are in a trusted IPs.
@@ -19,7 +30,7 @@ type Checker struct {
 // NewChecker builds a new Checker given a list of CIDR-Strings to trusted IPs.
 func NewChecker(trustedIPs []string) (*Checker, error) {
 	if len(trustedIPs) == 0 {
-		return nil, errors.New("no trusted IPs provided")
+		return nil, errNoTrustedIPsProvided
 	}
 
 	checker := &Checker{}
@@ -32,7 +43,7 @@ func NewChecker(trustedIPs []string) (*Checker, error) {
 
 		_, ipAddr, err := net.ParseCIDR(ipMask)
 		if err != nil {
-			return nil, fmt.Errorf("parsing CIDR trusted IPs %s: %w", ipAddr, err)
+			return nil, fmt.Errorf("%w %s: %w", errCIDRTrustedIPs, ipAddr, err)
 		}
 		checker.authorizedIPsNet = append(checker.authorizedIPsNet, ipAddr)
 	}
@@ -56,7 +67,7 @@ func (ip *Checker) IsAuthorized(addr string) error {
 
 	if !ok {
 		invalidMatches = append(invalidMatches, addr)
-		return fmt.Errorf("%q matched none of the trusted IPs", strings.Join(invalidMatches, ", "))
+		return fmt.Errorf("%q %w", strings.Join(invalidMatches, ", "), errMatchedNoneTrustedIPs)
 	}
 
 	return nil
@@ -65,7 +76,7 @@ func (ip *Checker) IsAuthorized(addr string) error {
 // Contains checks if provided address is in the trusted IPs.
 func (ip *Checker) Contains(addr string) (bool, error) {
 	if len(addr) == 0 {
-		return false, errors.New("empty IP address")
+		return false, errEmptyIP
 	}
 
 	ipAddr, err := parseIP(addr)
@@ -96,7 +107,7 @@ func (ip *Checker) ContainsIP(addr net.IP) bool {
 func parseIP(addr string) (net.IP, error) {
 	parsedAddr, err := netip.ParseAddr(addr)
 	if err != nil {
-		return nil, fmt.Errorf("can't parse IP from address %s", addr)
+		return nil, fmt.Errorf("%w %s", errCanNotParseIPaddress, addr)
 	}
 
 	ip := parsedAddr.As16()
