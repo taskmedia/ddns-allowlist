@@ -42,7 +42,7 @@ func (s *IPStrategy) Get() (ip.Strategy, error) {
 	}
 
 	if len(s.ExcludedIPs) > 0 {
-		checker, err := ip.NewChecker(s.ExcludedIPs)
+		checker, err := ip.NewChecker(s.ExcludedIPs, ip.DefaultNetworkPrefixIPv6)
 		if err != nil {
 			return nil, err
 		}
