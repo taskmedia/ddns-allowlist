@@ -14,7 +14,9 @@ import (
 	"strings"
 )
 
-const defaultNetworkPrefixIPv6 = 128
+// DefaultNetworkPrefixIPv6 defines the highest possible network prefix for IPv6 addresses.
+// When this is set the full IPv6 address needs to match the trusted IP.
+const DefaultNetworkPrefixIPv6 = 128
 
 var (
 	errCanNotParseIPaddress  = errors.New("can't parse IP from address")
@@ -54,13 +56,13 @@ func NewChecker(trustedIPs []string, networkPrefixIPv6 int) (*Checker, error) {
 		checker.authorizedIPsNet = append(checker.authorizedIPsNet, ipAddr)
 	}
 
-	if networkPrefixIPv6 < 0 || networkPrefixIPv6 > 128 {
+	if networkPrefixIPv6 < 0 || networkPrefixIPv6 > DefaultNetworkPrefixIPv6 {
 		return nil, fmt.Errorf("%w: %d", errInvalidIPv6NetPrefix, networkPrefixIPv6)
 	}
 	// If interface identifier prefix is not set, use default value.
 	// Otherwise if 0 is used all addresses will be allowed.
 	if networkPrefixIPv6 == 0 {
-		networkPrefixIPv6 = defaultNetworkPrefixIPv6
+		networkPrefixIPv6 = DefaultNetworkPrefixIPv6
 	}
 	checker.networkPrefixIPv6 = networkPrefixIPv6
 
@@ -114,7 +116,7 @@ func (ip *Checker) ContainsIP(addr net.IP) bool {
 		// This might be the case if resolved hostname is from a router.
 		// To allow all clients behind this routers network we need to filter only on network prefix.
 		// Check only runs on authorizedIPs and not authorizedNets because hostname will be an IP not network.
-		if ip.networkPrefixIPv6 != 128 && isIPv6(addr) && isIPv6(*authorizedIP) {
+		if ip.networkPrefixIPv6 != DefaultNetworkPrefixIPv6 && isIPv6(addr) && isIPv6(*authorizedIP) {
 			if isIPinNetwork(addr.String(), authorizedIP.String(), ip.networkPrefixIPv6) {
 				return true
 			}
