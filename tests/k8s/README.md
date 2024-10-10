@@ -54,3 +54,4 @@ You will find them in the [resources](./resources) directory.
 In [allow.yml](./resources/allow.yml) you will find the example configuration where `localhost` access is allowed.
 The [deny.yml](./resources/deny.yml) configuration only allows an access from Google`s DNS servers - so no access will be granted.
 Within the [service.yml](./resources/service.yml) you will find the service configuration for the whoami example service.
+[default.yml](./resources/default.yml) holds the default configuration without any middleware to restrict access.
