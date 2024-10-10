@@ -17,4 +17,5 @@ testData:
   #   cloudflareDepth: 1
   #   excludedIPs:
   #     - 4.3.2.1
+  # allowedIPv6NetworkPrefix: 64
   lookupInterval: 300

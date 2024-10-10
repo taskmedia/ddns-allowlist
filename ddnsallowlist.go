@@ -45,6 +45,11 @@ type DdnsAllowListConfig struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Lookup interval for new hostnames in seconds
 	LookupInterval int64 `json:"lookupInterval,omitempty"`
+	// AllowedIPv6InterfaceIdentifierPrefix defines the prefix used to allow IPv6 addresses to be whitelisted.
+	// This will only check the network prefix and skip the interface identifier.
+	// Used to allow subnetworks or hosts behind a IPv6 router.
+	// (default: disabled (0), allowed range: 0-128)
+	AllowedIPv6NetworkPrefix int `json:"allowedIPv6NetworkPrefix,omitempty"`
 }
 
 // ddnsAllowLister is a middleware that provides Checks of the Requesting IP against a set of Allowlists generated from DNS hostnames.
@@ -98,14 +103,15 @@ func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name
 
 	// Initialize the ddnsAllowLister
 	dal := &ddnsAllowLister{
-		strategy:         strategy,
-		next:             next,
-		name:             name,
-		rejectStatusCode: rejectStatusCode,
-		logger:           logger,
-		sourceRangeHosts: config.SourceRangeHosts,
-		sourceRangeIPs:   config.SourceRangeIPs,
-		lookupInterval:   lookupIntervall,
+		strategy:          strategy,
+		next:              next,
+		name:              name,
+		rejectStatusCode:  rejectStatusCode,
+		logger:            logger,
+		sourceRangeHosts:  config.SourceRangeHosts,
+		sourceRangeIPs:    config.SourceRangeIPs,
+		lookupInterval:    lookupIntervall,
+		networkPrefixIPv6: config.AllowedIPv6NetworkPrefix,
 	}
 
 	// Initial update of trusted IPs
@@ -127,7 +133,7 @@ func (dal *ddnsAllowLister) updateTrustedIPs() error {
 	trustedIPs = append(trustedIPs, dal.sourceRangeIPs...)
 	dal.logger.Debugf("trusted IPs: %v", trustedIPs)
 
-	checker, err := ip.NewChecker(trustedIPs)
+	checker, err := ip.NewChecker(trustedIPs, dal.networkPrefixIPv6)
 	if err != nil {
 		return err
 	}

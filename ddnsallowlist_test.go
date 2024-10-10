@@ -447,6 +447,39 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusForbidden,
 		},
+		{
+			desc: "allowed IPv6 with diff interface identifier",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts:         []string{"localhost"},
+				AllowedIPv6NetworkPrefix: 64,
+			},
+			req: &http.Request{
+				RemoteAddr: "00::11:22:33:44",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "denied IPv6 with diff interface identifier",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts:         []string{"localhost"},
+				AllowedIPv6NetworkPrefix: 64,
+			},
+			req: &http.Request{
+				RemoteAddr: "abcd::11:22:33:44",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			desc: "denied IPv6 without allowed interface identifier",
+			config: &DdnsAllowListConfig{
+				SourceRangeHosts:         []string{"localhost"},
+				AllowedIPv6NetworkPrefix: 128, // default 0 = 128 = not set
+			},
+			req: &http.Request{
+				RemoteAddr: "00::11:22:33:44",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
 	}
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
