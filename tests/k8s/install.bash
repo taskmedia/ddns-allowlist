@@ -41,10 +41,8 @@ helm upgrade --install traefik \
 
 # deploy demo application
 ensure_namespace whoami
-date
 kubectl apply -f "${DIR_TESTS_K8s}/resources/service.yml" --namespace whoami
 kubectl wait --namespace whoami --for=condition=ready pod -l app=whoami --timeout=30s
-date
 kubectl apply -f "${DIR_TESTS_K8s}/resources/default.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/allow.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/deny.yml" --namespace whoami
@@ -66,29 +64,11 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
     }
 }"
 
-echo "-------------------------------------"
-kubectl get pod --all-namespaces
-sleep 15
-sleep 15
-kubectl get pod --all-namespaces
-echo "-------------------------------------"
-kubectl get svc --all-namespaces
-echo "-------------------------------------"
-curl http://whoami.localhost:8080 -v || true
-echo "-------------------------------------"
-curl http://allow.whoami.localhost:8080 -v || true
-echo "-------------------------------------"
-curl http://deny.whoami.localhost:8080 -v || true
-echo "-------------------------------------"
-kubectl logs pod/$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')
-echo "-------------------------------------"
-curl http://localhost:9000/api/http/routers | jq
-echo "-------------------------------------"
-curl http://localhost:9000/api/http/middlewares | jq
-echo "-------------------------------------"
-curl http://localhost:9000/api/http/services | jq
-echo "-------------------------------------"
+# wait for IngressRoutes to be available
+sleep 5
 
 # check http response code
 curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
 curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8080 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
+
+kubectl logs pod/"$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')"
