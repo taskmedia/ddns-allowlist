@@ -71,6 +71,6 @@ http:
           # optional: allow IPv6 interface identifier based on given prefix
           # this will skip the interface identifier validation (default: disabled)
           allowedIPv6NetworkPrefix: 64
-          # optional: lookup interval for DNS hosts (default: 5 min)
+          # optional: lookup interval for DNS hosts in seconds (default: 5 min)
           lookupInterval: 60
 ```
