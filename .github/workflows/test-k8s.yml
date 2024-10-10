@@ -26,7 +26,3 @@ jobs:
     - name: Install and Tests
       shell: bash
       run: ./tests/k8s/install.bash
-
-    - name: Uninstall
-      shell: bash
-      run: ./tests/k8s/uninstall.bash
