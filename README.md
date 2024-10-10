@@ -68,6 +68,9 @@ http:
             cloudflareDepth: 1
             excludedIPs:
               - 4.3.2.1
+          # optional: allow IPv6 interface identifier based on given prefix
+          # this will skip the interface identifier validation (default: disabled)
+          allowedIPv6NetworkPrefix: 64
           # optional: lookup interval for DNS hosts (default: 5 min)
           lookupInterval: 60
 ```
