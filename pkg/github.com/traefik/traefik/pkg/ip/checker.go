@@ -8,6 +8,7 @@ package ip
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/netip"
 	"strings"
@@ -144,19 +145,24 @@ func isIPv6(ip net.IP) bool {
 	return strings.Contains(ip.String(), ":")
 }
 
+// isIPinNetwork checks if a given net.IP is inside a network.
+// This function does not use the logger pkg because it would require to be passed to many functions.
 func isIPinNetwork(addr, networkAddr string, networkPrefix int) bool {
 	netAddr, err := netip.ParseAddr(networkAddr)
 	if err != nil {
+		log.Print("could not parse network address", err)
 		return false
 	}
 
 	network, err := netAddr.Prefix(networkPrefix)
 	if err != nil {
+		log.Print("could not get network address prefix", err)
 		return false
 	}
 
 	a, err := netip.ParseAddr(addr)
 	if err != nil {
+		log.Print("could not parse address", err)
 		return false
 	}
 
