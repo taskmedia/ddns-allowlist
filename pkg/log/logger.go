@@ -1,11 +1,8 @@
-// Package ddns_allowlist usesthis implementation to log messages
+// Package logger implementation to log messages
 // source: https://github.com/traefik/plugindemo/issues/22#issuecomment-2329608616
 //
 // Hint: does not support other log formats (e.g. json) than the default common
-//
-//revive:disable-next-line:var-naming
-//nolint:stylecheck
-package ddns_allowlist
+package logger
 
 import (
 	"fmt"
@@ -33,8 +30,8 @@ type Logger struct {
 	context map[string]interface{}
 }
 
-// newLogger is used to log messages with context in Traefik log format.
-func newLogger(_logLevel, middleware, middlewareType string) *Logger {
+// NewLogger is used to log messages with context in Traefik log format.
+func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 	logLevel := strings.TrimSpace(strings.ToLower(_logLevel))
 	// This globally sets the flags for the standard logger which is generally
 	// a bad practice, however, since Traefik is capturing the output of the

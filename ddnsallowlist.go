@@ -15,6 +15,7 @@ import (
 
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
+	logger "github.com/taskmedia/ddns-allowlist/pkg/log"
 )
 
 const (
@@ -58,7 +59,7 @@ type ddnsAllowLister struct {
 	strategy          ip.Strategy
 	name              string
 	rejectStatusCode  int
-	logger            *Logger
+	logger            *logger.Logger
 	lastUpdate        time.Time
 	mu                sync.Mutex
 	sourceRangeHosts  []string
@@ -74,7 +75,7 @@ func CreateConfig() *DdnsAllowListConfig {
 
 // New created a new DDNSallowlist plugin.
 func New(_ context.Context, next http.Handler, config *DdnsAllowListConfig, name string) (http.Handler, error) {
-	logger := newLogger(config.LogLevel, name, typeName)
+	logger := logger.NewLogger(config.LogLevel, name, typeName)
 	logger.Debug("Creating middleware")
 
 	if len(config.SourceRangeHosts) == 0 {
@@ -173,7 +174,7 @@ func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	dal.next.ServeHTTP(rw, req)
 }
 
-func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
+func reject(logger *logger.Logger, statusCode int, rw http.ResponseWriter) {
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	rw.WriteHeader(statusCode)
 	_, err := rw.Write([]byte(http.StatusText(statusCode)))
@@ -182,7 +183,7 @@ func reject(logger *Logger, statusCode int, rw http.ResponseWriter) {
 	}
 }
 
-func resolveHosts(logger Logger, hosts []string) []string {
+func resolveHosts(logger logger.Logger, hosts []string) []string {
 	hostIPs := []string{}
 	for _, host := range hosts {
 		lookupIPs, err := net.LookupIP(host)
