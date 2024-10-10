@@ -41,10 +41,10 @@ helm upgrade --install traefik \
 
 # deploy demo application
 ensure_namespace whoami
-time
+date
 kubectl apply -f "${DIR_TESTS_K8s}/resources/service.yml" --namespace whoami
-sleep 5
-time
+sleep 10
+date
 kubectl apply -f "${DIR_TESTS_K8s}/resources/allow.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/deny.yml" --namespace whoami
 
