@@ -41,7 +41,10 @@ helm upgrade --install traefik \
 
 # deploy demo application
 ensure_namespace whoami
+time
 kubectl apply -f "${DIR_TESTS_K8s}/resources/service.yml" --namespace whoami
+sleep 5
+time
 kubectl apply -f "${DIR_TESTS_K8s}/resources/allow.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/deny.yml" --namespace whoami
 
@@ -64,8 +67,7 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
 
 echo "-------------------------------------"
 kubectl get pod --all-namespaces
-sleep 15
-sleep 15
+sleep 30
 kubectl get pod --all-namespaces
 echo "-------------------------------------"
 kubectl get svc --all-namespaces
