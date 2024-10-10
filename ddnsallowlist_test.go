@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/config/dynamic"
 	"github.com/taskmedia/ddns-allowlist/pkg/github.com/traefik/traefik/pkg/ip"
+	logger "github.com/taskmedia/ddns-allowlist/pkg/log"
 )
 
 var errNoTrustedIPs = errors.New("no trusted IPs provided")
@@ -140,7 +141,7 @@ func TestNew(t *testing.T) {
 
 func TestUpdateTrustedIPs(t *testing.T) {
 	t.Run("update trusted IPs", func(t *testing.T) {
-		logger := newLogger("DEBUG", "test", "TestUpdateTrustedIPs")
+		logger := logger.NewLogger("DEBUG", "test", "TestUpdateTrustedIPs")
 		dal := &ddnsAllowLister{
 			logger:           logger,
 			sourceRangeHosts: []string{"dns.google"},
@@ -530,7 +531,7 @@ func TestReject(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			logger := newLogger("DEBUG", "test", "TestReject")
+			logger := logger.NewLogger("DEBUG", "test", "TestReject")
 			rec := httptest.NewRecorder()
 
 			reject(logger, tc.status, rec)
@@ -577,7 +578,7 @@ func TestResolveHosts(t *testing.T) {
 		},
 	}
 
-	logger := &Logger{}
+	logger := &logger.Logger{}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			hostIPs := resolveHosts(*logger, tC.hosts)
