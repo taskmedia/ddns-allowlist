@@ -29,4 +29,4 @@ jobs:
 
     - name: Uninstall
       shell: bash
-      run: ./tests/k8s/install.bash
+      run: ./tests/k8s/uninstall.bash
