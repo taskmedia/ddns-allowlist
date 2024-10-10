@@ -41,6 +41,7 @@ helm upgrade --install traefik \
 
 # deploy demo application
 ensure_namespace whoami
+date
 kubectl apply -f "${DIR_TESTS_K8s}/resources/service.yml" --namespace whoami
 kubectl wait --namespace whoami --for=condition=ready pod -l app=whoami --timeout=30s
 kubectl apply -f "${DIR_TESTS_K8s}/resources/default.yml" --namespace whoami
