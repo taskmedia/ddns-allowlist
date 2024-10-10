@@ -68,9 +68,3 @@ issues:
         - goconst
         - funlen
         - godot
-
-  exclude-files:
-    - pkg/github.com/traefik/traefik/pkg/config/dynamic/middlewares.go
-    - pkg/github.com/traefik/traefik/pkg/ip/checker.go
-    - pkg/github.com/traefik/traefik/pkg/ip/strategy.go
-

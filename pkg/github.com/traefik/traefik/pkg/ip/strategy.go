@@ -1,5 +1,8 @@
+// Package ip has its origin from traefik/traefik and was extended by this repository
+// This file extends the package with an additional strategy
+// It will add and overwrite existing types and functions
+//
 // source: https://github.com/traefik/traefik/blob/2560626419eaaf2b85982bdb3a70f74953299c72/pkg/ip/strategy.go
-
 package ip
 
 import (
@@ -10,12 +13,14 @@ import (
 
 const (
 	xForwardedFor = "X-Forwarded-For"
+	cloudflareIP  = "Cf-Connecting-Ip"
 )
 
-// // Strategy a strategy for IP selection.
-// type Strategy interface {
-// 	GetIP(req *http.Request) string
-// }
+// Strategy strategy for IP selection.
+type Strategy interface {
+	GetIP(req *http.Request) string
+	Name() string
+}
 
 // RemoteAddrStrategy a strategy that always return the remote address.
 type RemoteAddrStrategy struct{}
@@ -27,6 +32,11 @@ func (s *RemoteAddrStrategy) GetIP(req *http.Request) string {
 		return req.RemoteAddr
 	}
 	return ip
+}
+
+// Name return the strategy name for remote address.
+func (s *RemoteAddrStrategy) Name() string {
+	return "RemoteAddrStrategy"
 }
 
 // DepthStrategy a strategy based on the depth inside the X-Forwarded-For from right to left.
@@ -43,6 +53,11 @@ func (s *DepthStrategy) GetIP(req *http.Request) string {
 		return ""
 	}
 	return strings.TrimSpace(xffs[len(xffs)-s.Depth])
+}
+
+// Name return the strategy name for depth (X-Forwarded-For).
+func (s *DepthStrategy) Name() string {
+	return "DepthStrategy"
 }
 
 // PoolStrategy is a strategy based on an IP Checker.
@@ -73,4 +88,30 @@ func (s *PoolStrategy) GetIP(req *http.Request) string {
 	}
 
 	return ""
+}
+
+// Name return the strategy name for pool (X-Forwarded-For).
+func (s *PoolStrategy) Name() string {
+	return "PoolStrategy"
+}
+
+// CloudflareDepthStrategy a strategy based on the depth inside the Cloudflare header (Cf-Connecting-Ip) from right to left.
+type CloudflareDepthStrategy struct {
+	CloudflareDepth int
+}
+
+// GetIP return the selected Cloudflare IP.
+func (s *CloudflareDepthStrategy) GetIP(req *http.Request) string {
+	xff := req.Header.Get(cloudflareIP)
+	xffs := strings.Split(xff, ",")
+
+	if len(xffs) < s.CloudflareDepth {
+		return ""
+	}
+	return strings.TrimSpace(xffs[len(xffs)-s.CloudflareDepth])
+}
+
+// Name return the strategy name for Cloudflare.
+func (s *CloudflareDepthStrategy) Name() string {
+	return "CloudflareDepthStrategy"
 }
