@@ -46,13 +46,7 @@ type DepthStrategy struct {
 
 // GetIP return the selected IP.
 func (s *DepthStrategy) GetIP(req *http.Request) string {
-	xff := req.Header.Get(xForwardedFor)
-	xffs := strings.Split(xff, ",")
-
-	if len(xffs) < s.Depth {
-		return ""
-	}
-	return strings.TrimSpace(xffs[len(xffs)-s.Depth])
+	return getIPFromHeader(req, xForwardedFor, s.Depth)
 }
 
 // Name return the strategy name for depth (X-Forwarded-For).
@@ -102,16 +96,20 @@ type CloudflareDepthStrategy struct {
 
 // GetIP return the selected Cloudflare IP.
 func (s *CloudflareDepthStrategy) GetIP(req *http.Request) string {
-	xff := req.Header.Get(cloudflareIP)
-	xffs := strings.Split(xff, ",")
-
-	if len(xffs) < s.CloudflareDepth {
-		return ""
-	}
-	return strings.TrimSpace(xffs[len(xffs)-s.CloudflareDepth])
+	return getIPFromHeader(req, cloudflareIP, s.CloudflareDepth)
 }
 
 // Name return the strategy name for Cloudflare.
 func (s *CloudflareDepthStrategy) Name() string {
 	return "CloudflareDepthStrategy"
+}
+
+func getIPFromHeader(req *http.Request, header string, depth int) string {
+	h := req.Header.Get(header)
+	ips := strings.Split(h, ",")
+
+	if len(ips) < depth {
+		return ""
+	}
+	return strings.TrimSpace(ips[len(ips)-depth])
 }
