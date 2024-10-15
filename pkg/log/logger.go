@@ -15,10 +15,12 @@ import (
 const (
 	prefixInfo  = colorGreen + "INF" + colorReset
 	prefixTrace = colorBlue + "TRC" + colorReset
+	delimiter   = colorCyan + ">" + colorReset
 	colorReset  = "\033[0m"
 	colorGray   = "\033[90m"
 	colorGreen  = "\033[32m"
 	colorBlue   = "\033[34m"
+	colorCyan   = "\033[36m"
 )
 
 // Logger will log messages with context.
@@ -46,7 +48,7 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 
 	logger := &Logger{
 		_trace: func(args ...interface{}) {
-			prefixArgs := append([]interface{}{getTimestamp(), prefixTrace, ">"}, args...)
+			prefixArgs := append([]interface{}{getTimestamp(), prefixTrace, delimiter}, args...)
 			//nolint:errcheck
 			fmt.Fprintln(os.Stdout, prefixArgs...)
 		},
@@ -54,7 +56,7 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 			fmt.Println(args...)
 		},
 		_info: func(args ...interface{}) {
-			prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, ">"}, args...)
+			prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, delimiter}, args...)
 			//nolint:errcheck
 			fmt.Fprintln(os.Stdout, prefixArgs...)
 		},
@@ -62,7 +64,7 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 			log.Println(args...)
 		},
 		_tracef: func(format string, args ...interface{}) {
-			f := getTimestamp() + " " + prefixTrace + " > " + format + "\n"
+			f := getTimestamp() + " " + prefixTrace + " " + delimiter + " " + format + "\n"
 			//nolint:errcheck
 			fmt.Fprintf(os.Stdout, f, args...)
 		},
@@ -70,7 +72,7 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 			fmt.Printf(format+"\n", args...)
 		},
 		_infof: func(format string, args ...interface{}) {
-			f := getTimestamp() + " " + prefixInfo + " > " + format + "\n"
+			f := getTimestamp() + " " + prefixInfo + " " + delimiter + " " + format + "\n"
 			//nolint:errcheck
 			fmt.Fprintf(os.Stdout, f, args...)
 		},
