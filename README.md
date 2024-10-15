@@ -53,7 +53,7 @@ http:
     ddns-allowlist-router:
       plugin:
         ddns-allowlist:
-          # optional: log level for the plugin (allowed: ERROR, INFO, DEBUG, default: ERROR)
+          # optional: log level for the plugin (allowed: ERROR, INFO, DEBUG, TRACE - default: ERROR)
           logLevel: ERROR
           # hosts to dynamically add to allowlist via DNS lookup
           sourceRangeHosts:
