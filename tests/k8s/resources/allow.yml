@@ -5,7 +5,7 @@ metadata:
 spec:
   plugin:
     ddns-allowlist:
-      logLevel: DEBUG
+      logLevel: TRACE
       sourceRangeHosts:
       - localhost
       # sourceRangeIps:

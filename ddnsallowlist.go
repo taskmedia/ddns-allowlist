@@ -147,6 +147,7 @@ func (dal *ddnsAllowLister) updateTrustedIPs() error {
 func (dal *ddnsAllowLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := dal.logger
 	logger.Debug("Serving middleware")
+	logger.Tracef("Incoming request: %+v", req)
 
 	// Check if the trusted IPs need to be updated
 	dal.mu.Lock()
