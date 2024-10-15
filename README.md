@@ -23,7 +23,7 @@ experimental:
   plugins:
     ddns-allowlist:
       moduleName: "github.com/taskmedia/ddns-allowlist"
-      version: v1.6.0
+      version: v1.6.1
 ```
 
 ## Configuration
