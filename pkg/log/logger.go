@@ -165,7 +165,7 @@ func (l *Logger) Error(args ...interface{}) {
 
 // Tracef prints an debug log.
 func (l *Logger) Tracef(format string, args ...interface{}) {
-	l.logWithContextf(l._debugf, format, args...)
+	l.logWithContextf(l._tracef, format, args...)
 }
 
 // Debugf prints an debug log.
