@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 3m
 
@@ -19,13 +21,16 @@ linters-settings:
   godox:
     keywords:
       - FIXME
-  gofumpt:
-    extra-rules: true
   depguard:
     rules:
+      main:
+        files:
+          - $all
+        allow:
+          - $gostd
+          - github.com/taskmedia/ddns-allowlist
       testify:
         files:
-          # - $all
           - "$test"
         allow:
           - $gostd
@@ -33,38 +38,17 @@ linters-settings:
           - github.com/stretchr/testify/require
           - github.com/taskmedia/ddns-allowlist
 
-
 linters:
-  enable-all: true
-  disable:
-    - sqlclosecheck # not relevant (SQL)
-    - rowserrcheck # not relevant (SQL)
-    - execinquery # not relevant (SQL)
-    - cyclop # duplicate of gocyclo
-    - bodyclose # Too many false positives: https://github.com/timakin/bodyclose/issues/30
-    - dupl
-    - testpackage
-    - tparallel
-    - paralleltest
-    - nlreturn
-    - wsl
-    - exhaustive
-    - exhaustruct
-    - wrapcheck
-    - noctx
-    - lll
-    - gomnd
-    - forbidigo
-    - varnamelen
-    - exportloopref
-
-issues:
-  exclude-use-default: false
-  max-same-issues: 0
-  exclude: []
-  exclude-rules:
-    - path: (.+)_test.go
-      linters:
-        - goconst
-        - funlen
-        - godot
+  enable:
+    - govet
+    - gocyclo
+    - goconst
+    - misspell
+    - funlen
+    - godox
+    - depguard
+    - errcheck
+    - gocritic
+    - staticcheck
+    - ineffassign
+    - unused
