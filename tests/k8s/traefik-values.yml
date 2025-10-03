@@ -21,9 +21,11 @@ additionalVolumeMounts:
 additionalArguments:
 - "--experimental.localPlugins.ddns-allowlist.modulename=github.com/taskmedia/ddns-allowlist"
 
-globalArguments:
-- "--global.checknewversion=false"
-- "--global.sendanonymoususage=false"
+global:
+  checkNewVersion: false
+  # -- Please take time to consider whether or not you wish to share anonymous data with us
+  # See https://doc.traefik.io/traefik/contributing/data-collection/
+  sendAnonymousUsage: false
 
 ingressRoute:
   dashboard:
@@ -38,7 +40,8 @@ ports:
     expose:
       default: true
   web:
-    exposedPort: 8080
+    expose:
+      default: true
   websecure:
     expose:
       default: false
