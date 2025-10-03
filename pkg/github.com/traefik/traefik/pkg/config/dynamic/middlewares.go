@@ -15,6 +15,7 @@ type IPStrategy struct {
 	CloudflareDepth int `export:"true" json:"cloudflareDepth,omitempty" toml:"cloudflareDepth,omitempty" yaml:"cloudflareDepth,omitempty"`
 	// ExcludedIPs configures Traefik to scan the X-Forwarded-For header and select the first IP not in the list.
 	ExcludedIPs []string `json:"excludedIPs,omitempty" toml:"excludedIPs,omitempty" yaml:"excludedIPs,omitempty"`
+	//nolint:godox
 	// TODO(mpl): I think we should make RemoteAddr an explicit field. For one thing, it would yield better documentation.
 }
 
