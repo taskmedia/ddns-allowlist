@@ -25,17 +25,19 @@ linters-settings:
     rules:
       main:
         files:
-          - $all
+          - "**/*.go"
         allow:
           - $gostd
           - github.com/taskmedia/ddns-allowlist
-      testify:
+        deny:
+          - pkg: "github.com/stretchr/testify"
+            desc: "testify is only allowed in test files"
+      test:
         files:
-          - "$test"
+          - "**/*_test.go"
         allow:
           - $gostd
-          - github.com/stretchr/testify/assert
-          - github.com/stretchr/testify/require
+          - github.com/stretchr/testify
           - github.com/taskmedia/ddns-allowlist
 
 linters:
@@ -46,7 +48,6 @@ linters:
     - misspell
     - funlen
     - godox
-    - depguard
     - errcheck
     - gocritic
     - staticcheck
