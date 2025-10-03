@@ -46,45 +46,31 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 	// has no other side effects.
 	log.SetFlags(0)
 
-	logger := &Logger{
-		_trace: func(args ...interface{}) {
-			prefixArgs := append([]interface{}{getTimestamp(), prefixTrace, delimiter}, args...)
-			//nolint:errcheck
-			fmt.Fprintln(os.Stdout, prefixArgs...)
-		},
-		_debug: func(args ...interface{}) {
-			fmt.Println(args...)
-		},
-		_info: func(args ...interface{}) {
-			prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, delimiter}, args...)
-			//nolint:errcheck
-			fmt.Fprintln(os.Stdout, prefixArgs...)
-		},
-		_error: func(args ...interface{}) {
-			log.Println(args...)
-		},
-		_tracef: func(format string, args ...interface{}) {
-			f := getTimestamp() + " " + prefixTrace + " " + delimiter + " " + format + "\n"
-			//nolint:errcheck
-			fmt.Fprintf(os.Stdout, f, args...)
-		},
-		_debugf: func(format string, args ...interface{}) {
-			fmt.Printf(format+"\n", args...)
-		},
-		_infof: func(format string, args ...interface{}) {
-			f := getTimestamp() + " " + prefixInfo + " " + delimiter + " " + format + "\n"
-			//nolint:errcheck
-			fmt.Fprintf(os.Stdout, f, args...)
-		},
-		_errorf: func(format string, args ...interface{}) {
-			log.Printf(format+"\n", args...)
-		},
+	logger := createLogger(middleware, middlewareType)
+	applyLogLevel(logger, logLevel)
+	return logger
+}
+
+// createLogger creates a new logger instance with all logging functions enabled.
+func createLogger(middleware, middlewareType string) *Logger {
+	return &Logger{
+		_trace:  createTraceFunc(),
+		_debug:  createDebugFunc(),
+		_info:   createInfoFunc(),
+		_error:  createErrorFunc(),
+		_tracef: createTracefFunc(),
+		_debugf: createDebugfFunc(),
+		_infof:  createInfofFunc(),
+		_errorf: createErrorfFunc(),
 		context: map[string]interface{}{
 			"middlewareName": middleware,
 			"middlewareType": middlewareType,
 		},
 	}
+}
 
+// applyLogLevel disables logging functions based on the specified log level.
+func applyLogLevel(logger *Logger, logLevel string) {
 	disableLog := func(_ ...interface{}) {}
 	disableLogf := func(_ string, _ ...interface{}) {}
 
@@ -115,8 +101,70 @@ func NewLogger(_logLevel, middleware, middlewareType string) *Logger {
 		logger._trace = disableLog
 		logger._tracef = disableLogf
 	}
+}
 
-	return logger
+// createTraceFunc creates the trace logging function.
+func createTraceFunc() func(args ...interface{}) {
+	return func(args ...interface{}) {
+		prefixArgs := append([]interface{}{getTimestamp(), prefixTrace, delimiter}, args...)
+		//nolint:errcheck
+		fmt.Fprintln(os.Stdout, prefixArgs...)
+	}
+}
+
+// createDebugFunc creates the debug logging function.
+func createDebugFunc() func(args ...interface{}) {
+	return func(args ...interface{}) {
+		fmt.Println(args...)
+	}
+}
+
+// createInfoFunc creates the info logging function.
+func createInfoFunc() func(args ...interface{}) {
+	return func(args ...interface{}) {
+		prefixArgs := append([]interface{}{getTimestamp(), prefixInfo, delimiter}, args...)
+		//nolint:errcheck
+		fmt.Fprintln(os.Stdout, prefixArgs...)
+	}
+}
+
+// createErrorFunc creates the error logging function.
+func createErrorFunc() func(args ...interface{}) {
+	return func(args ...interface{}) {
+		log.Println(args...)
+	}
+}
+
+// createTracefFunc creates the tracef logging function.
+func createTracefFunc() func(format string, args ...interface{}) {
+	return func(format string, args ...interface{}) {
+		f := getTimestamp() + " " + prefixTrace + " " + delimiter + " " + format + "\n"
+		//nolint:errcheck
+		fmt.Fprintf(os.Stdout, f, args...)
+	}
+}
+
+// createDebugfFunc creates the debugf logging function.
+func createDebugfFunc() func(format string, args ...interface{}) {
+	return func(format string, args ...interface{}) {
+		fmt.Printf(format+"\n", args...)
+	}
+}
+
+// createInfofFunc creates the infof logging function.
+func createInfofFunc() func(format string, args ...interface{}) {
+	return func(format string, args ...interface{}) {
+		f := getTimestamp() + " " + prefixInfo + " " + delimiter + " " + format + "\n"
+		//nolint:errcheck
+		fmt.Fprintf(os.Stdout, f, args...)
+	}
+}
+
+// createErrorfFunc creates the errorf logging function.
+func createErrorfFunc() func(format string, args ...interface{}) {
+	return func(format string, args ...interface{}) {
+		log.Printf(format+"\n", args...)
+	}
 }
 
 func getTimestamp() string {
