@@ -12,7 +12,7 @@ jobs:
     name: test
     runs-on: ${{ matrix.os }}
     env:
-      GO_VERSION: 1.23.1
+      GO_VERSION: 1.25.1
       GOLANGCI_LINT_VERSION: v1.62.0
       # YAEGI_VERSION: v0.16.1
       # YAEGI_UNSAFE: 1
@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: [1.23.1, 1.x]
+        go-version: [1.25.1, 1.x]
         os: [ubuntu-latest, macos-latest]
 
     steps:
