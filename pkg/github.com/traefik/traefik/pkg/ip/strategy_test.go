@@ -8,14 +8,31 @@ import (
 )
 
 func TestGetIP(t *testing.T) {
-	testCases := []struct {
-		desc                      string
-		req                       *http.Request
-		expectedIPRemoteAddr      string
-		expectedIPDepth           string
-		expectedIPPool            string
-		expectedIPCloudflareDepth string
-	}{
+	testCases := getIPTestCases()
+	strategies := createStrategies()
+
+	for _, tc := range testCases {
+		for _, strategy := range strategies {
+			t.Run(tc.desc+" - "+strategy.Name(), func(t *testing.T) {
+				t.Parallel()
+				got := strategy.GetIP(tc.req)
+				assertStrategyResult(t, strategy, tc, got)
+			})
+		}
+	}
+}
+
+type ipTestCase struct {
+	desc                      string
+	req                       *http.Request
+	expectedIPRemoteAddr      string
+	expectedIPDepth           string
+	expectedIPPool            string
+	expectedIPCloudflareDepth string
+}
+
+func getIPTestCases() []ipTestCase {
+	return []ipTestCase{
 		{
 			desc: "single RemoteAddrStrategy",
 			req: &http.Request{
@@ -57,33 +74,27 @@ func TestGetIP(t *testing.T) {
 			expectedIPCloudflareDepth: "30.30.30.30",
 		},
 	}
+}
 
+func createStrategies() []Strategy {
 	checkerEmpty, _ := NewChecker([]string{"9.9.9.9"}, DefaultNetworkPrefixIPv6)
-
-	strategies := []Strategy{
+	return []Strategy{
 		&RemoteAddrStrategy{},
 		&DepthStrategy{Depth: 1},
 		&PoolStrategy{Checker: checkerEmpty},
 		&CloudflareDepthStrategy{CloudflareDepth: 1},
 	}
+}
 
-	for _, tc := range testCases {
-		for _, strategy := range strategies {
-			t.Run(tc.desc+" - "+strategy.Name(), func(t *testing.T) {
-				t.Parallel()
-				got := strategy.GetIP(tc.req)
-
-				switch strategy.(type) {
-				case *RemoteAddrStrategy:
-					assert.Equal(t, tc.expectedIPRemoteAddr, got, "(RemoteAddrStrategy)")
-				case *DepthStrategy:
-					assert.Equal(t, tc.expectedIPDepth, got, "(DepthStrategy)")
-				case *PoolStrategy:
-					assert.Equal(t, tc.expectedIPPool, got, "(PoolStrategy)")
-				case *CloudflareDepthStrategy:
-					assert.Equal(t, tc.expectedIPCloudflareDepth, got, "(CloudflareDepthStrategy)")
-				}
-			})
-		}
+func assertStrategyResult(t *testing.T, strategy Strategy, tc ipTestCase, got string) {
+	switch strategy.(type) {
+	case *RemoteAddrStrategy:
+		assert.Equal(t, tc.expectedIPRemoteAddr, got, "(RemoteAddrStrategy)")
+	case *DepthStrategy:
+		assert.Equal(t, tc.expectedIPDepth, got, "(DepthStrategy)")
+	case *PoolStrategy:
+		assert.Equal(t, tc.expectedIPPool, got, "(PoolStrategy)")
+	case *CloudflareDepthStrategy:
+		assert.Equal(t, tc.expectedIPCloudflareDepth, got, "(CloudflareDepthStrategy)")
 	}
 }
