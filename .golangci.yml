@@ -3,43 +3,6 @@ version: "2"
 run:
   timeout: 3m
 
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  gocyclo:
-    min-complexity: 12
-  goconst:
-    min-len: 5
-    min-occurrences: 4
-  misspell:
-    locale: US
-  funlen:
-    lines: -1
-    statements: 50
-  godox:
-    keywords:
-      - FIXME
-  depguard:
-    rules:
-      main:
-        files:
-          - "**/*.go"
-        allow:
-          - $gostd
-          - github.com/taskmedia/ddns-allowlist
-        deny:
-          - pkg: "github.com/stretchr/testify"
-            desc: "testify is only allowed in test files"
-      test:
-        files:
-          - "**/*_test.go"
-        allow:
-          - $gostd
-          - github.com/stretchr/testify
-          - github.com/taskmedia/ddns-allowlist
-
 linters:
   enable:
     - govet
