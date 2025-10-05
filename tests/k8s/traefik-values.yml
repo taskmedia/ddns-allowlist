@@ -42,6 +42,7 @@ ports:
   web:
     expose:
       default: true
+    exposedPort: 8000
   websecure:
     expose:
       default: false
