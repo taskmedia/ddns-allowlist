@@ -501,6 +501,8 @@ func runServeHTTPTests(t *testing.T, testCases []serveHTTPTestCase) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := context.Background()
 			handler, err := New(ctx, next, tc.config, "ddns-allowlist")
 
