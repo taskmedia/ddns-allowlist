@@ -8,7 +8,7 @@ lint:
 	golangci-lint run
 
 test:
-	go test -v -cover ./...
+	go test -v ./...
 
 yaegi_test:
 	yaegi test -v .
