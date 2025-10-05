@@ -12,8 +12,8 @@ jobs:
     name: test
     runs-on: ${{ matrix.os }}
     env:
-      GO_VERSION: 1.25.1
-      GOLANGCI_LINT_VERSION: v1.62.0
+      # GO_VERSION: ${{ matrix.go-version }}
+      GOLANGCI_LINT_VERSION: v2.5.0
       # YAEGI_VERSION: v0.16.1
       # YAEGI_UNSAFE: 1
       CGO_ENABLED: 0
