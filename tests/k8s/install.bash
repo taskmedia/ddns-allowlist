@@ -68,7 +68,7 @@ kubectl patch middlewares.traefik.io ddnsallowlist-allow --namespace whoami --ty
 sleep 5
 
 # check http response code
-curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8080 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
-curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8080 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
+curl -s -o /dev/null -w "%{http_code}" http://allow.whoami.localhost:8000 | grep 200 || { echo "Failed to get 200 response code"; exit 1; }
+curl -s -o /dev/null -w "%{http_code}" http://deny.whoami.localhost:8000 | grep 403 || { echo "Failed to get 403 response code"; exit 1; }
 
 kubectl logs pod/"$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')"

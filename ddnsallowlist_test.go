@@ -31,23 +31,32 @@ func TestCreateConfig(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	testCases := []struct {
-		desc       string
-		config     *DdnsAllowListConfig
-		err        error
-		ipstrategy ip.Strategy
-	}{
+	testCases := getNewTestCases()
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			testNewWithCase(t, tc)
+		})
+	}
+}
+
+type newTestCase struct {
+	desc       string
+	config     *DdnsAllowListConfig
+	err        error
+	ipstrategy ip.Strategy
+}
+
+func getNewTestCases() []newTestCase {
+	return []newTestCase{
 		{
 			desc:   "empty sourceRangeHosts",
 			config: &DdnsAllowListConfig{},
 			err:    errEmptySourceRangeHosts,
 		},
 		{
-			desc: "modified rejectStatus",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"example.com"},
-				RejectStatusCode: 200,
-			},
+			desc:   "modified rejectStatus",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"example.com"}, RejectStatusCode: 200},
 		},
 		{
 			desc: "invalid rejectStatus",
@@ -84,19 +93,6 @@ func TestNew(t *testing.T) {
 				Depth: 1,
 			},
 		},
-		// {
-		// 	desc: "IP strategy Pool",
-		// 	config: &DdnsAllowListConfig{
-		// 		SourceRangeHosts: []string{"example.com"},
-		// 		IPStrategy: &dynamic.IPStrategyDnswl{
-		// 			ExcludedIPs: []string{"1.2.3.4"},
-		// 		},
-		// 	},
-		// 	ipstrategy: &ip.PoolStrategy{
-		// 		// TODO: Checker can currently not be testet
-		// 		Checker: &ip.Checker{},
-		// 	},
-		// },
 		{
 			desc: "IP strategy CloudflareDepth",
 			config: &DdnsAllowListConfig{
@@ -110,32 +106,29 @@ func TestNew(t *testing.T) {
 			},
 		},
 	}
+}
 
-	for _, tc := range testCases {
-		// t.Parallel()
-		t.Run(tc.desc, func(t *testing.T) {
-			dal, err := New(context.TODO(), nil, tc.config, "test")
-			if err != nil {
-				assert.Equal(t, tc.err, err)
-				return
-			}
+func testNewWithCase(t *testing.T, tc newTestCase) {
+	dal, err := New(context.TODO(), nil, tc.config, "test")
+	if err != nil {
+		assert.Equal(t, tc.err, err)
+		return
+	}
 
-			al, ok := dal.(*ddnsAllowLister)
-			require.True(t, ok)
+	al, ok := dal.(*ddnsAllowLister)
+	require.True(t, ok)
 
-			if tc.config.RejectStatusCode != 0 {
-				assert.Equal(t, tc.config.RejectStatusCode, al.rejectStatusCode)
-			}
+	if tc.config.RejectStatusCode != 0 {
+		assert.Equal(t, tc.config.RejectStatusCode, al.rejectStatusCode)
+	}
 
-			if tc.config.LookupInterval != 0 {
-				expectedInterval := time.Duration(tc.config.LookupInterval) * time.Second
-				assert.Equal(t, expectedInterval, al.lookupInterval)
-			}
+	if tc.config.LookupInterval != 0 {
+		expectedInterval := time.Duration(tc.config.LookupInterval) * time.Second
+		assert.Equal(t, expectedInterval, al.lookupInterval)
+	}
 
-			if tc.config.IPStrategy != nil {
-				assert.Equal(t, tc.ipstrategy, al.strategy)
-			}
-		})
+	if tc.config.IPStrategy != nil {
+		assert.Equal(t, tc.ipstrategy, al.strategy)
 	}
 }
 
@@ -159,15 +152,37 @@ func TestUpdateTrustedIPs(t *testing.T) {
 	})
 }
 
-//nolint:maintidx
 func TestServeHTTP(t *testing.T) {
-	testCase := []struct {
-		desc           string
-		config         *DdnsAllowListConfig
-		req            *http.Request
-		expectedStatus int
-		expectedError  error
-	}{
+	testCases := getServeHTTPTestCases()
+	runServeHTTPTests(t, testCases)
+}
+
+type serveHTTPTestCase struct {
+	desc           string
+	config         *DdnsAllowListConfig
+	req            *http.Request
+	expectedStatus int
+	expectedError  error
+}
+
+func getServeHTTPTestCases() []serveHTTPTestCase {
+	var testCases []serveHTTPTestCase
+	testCases = append(testCases, getBasicAccessTestCases()...)
+	testCases = append(testCases, getIPStrategyTestCases()...)
+	testCases = append(testCases, getIPv6TestCases()...)
+	return testCases
+}
+
+func getBasicAccessTestCases() []serveHTTPTestCase {
+	var testCases []serveHTTPTestCase
+	testCases = append(testCases, getAllowedTestCases()...)
+	testCases = append(testCases, getDeniedTestCases()...)
+	testCases = append(testCases, getBasicIPTestCases()...)
+	return testCases
+}
+
+func getAllowedTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
 			desc: "allowed host internal - localhost",
 			config: &DdnsAllowListConfig{
@@ -208,6 +223,11 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 		},
+	}
+}
+
+func getDeniedTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
 			desc: "denied host internal - localhost",
 			config: &DdnsAllowListConfig{
@@ -259,6 +279,11 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedError: errNoTrustedIPs,
 		},
+	}
+}
+
+func getBasicIPTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
 			desc: "allowed ip",
 			config: &DdnsAllowListConfig{
@@ -281,49 +306,41 @@ func TestServeHTTP(t *testing.T) {
 		// 	},
 		// 	expectedError: errors.New("parsing CIDR trusted IPs <nil>: invalid CIDR address: invalid-ip"),
 		// },
+	}
+}
+
+func getIPStrategyTestCases() []serveHTTPTestCase {
+	var testCases []serveHTTPTestCase
+	testCases = append(testCases, getForwardedForTestCases()...)
+	testCases = append(testCases, getCloudflareTestCases()...)
+	return testCases
+}
+
+func getForwardedForTestCases() []serveHTTPTestCase {
+	var testCases []serveHTTPTestCase
+	testCases = append(testCases, getDepthTestCases()...)
+	testCases = append(testCases, getExcludedIPTestCases()...)
+	return testCases
+}
+
+func getDepthTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
-			desc: "access via xForwardedFor depth IP",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					Depth: 1,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"X-Forwarded-For": {"8.8.8.8"},
-				},
-			},
+			desc:   "access via xForwardedFor depth IP",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{Depth: 1}},
+			req:    &http.Request{Header: map[string][]string{"X-Forwarded-For": {"8.8.8.8"}}},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "access via xForwardedFor depth second IP",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					Depth: 2,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"X-Forwarded-For": {"8.8.8.8, 1.2.3.4"},
-				},
-			},
+			desc:   "access via xForwardedFor depth second IP",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{Depth: 2}},
+			req:    &http.Request{Header: map[string][]string{"X-Forwarded-For": {"8.8.8.8, 1.2.3.4"}}},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "denied via xForwardedFor depth",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					Depth: 1,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"X-Forwarded-For": {"1.2.3.4"},
-				},
-			},
+			desc:   "denied via xForwardedFor depth",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{Depth: 1}},
+			req:    &http.Request{Header: map[string][]string{"X-Forwarded-For": {"1.2.3.4"}}},
 			expectedStatus: http.StatusForbidden,
 		},
 		{
@@ -342,6 +359,11 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusForbidden,
 		},
+	}
+}
+
+func getExcludedIPTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
 			desc: "access via xForwardedFor excluded IPs",
 			config: &DdnsAllowListConfig{
@@ -372,49 +394,33 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusForbidden,
 		},
+	}
+}
+
+func getCloudflareTestCases() []serveHTTPTestCase {
+	var testCases []serveHTTPTestCase
+	testCases = append(testCases, getCfConnectingIPTestCases()...)
+	return testCases
+}
+
+func getCfConnectingIPTestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
-			desc: "access via CfConnectingIp depth IP",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					CloudflareDepth: 1,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"Cf-Connecting-Ip": {"8.8.8.8"},
-				},
-			},
+			desc:   "access via CfConnectingIp depth IP",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{CloudflareDepth: 1}},
+			req:    &http.Request{Header: map[string][]string{"Cf-Connecting-Ip": {"8.8.8.8"}}},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "access via CfConnectingIp depth second IP",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					CloudflareDepth: 2,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"Cf-Connecting-Ip": {"8.8.8.8, 1.2.3.4"},
-				},
-			},
+			desc:   "access via CfConnectingIp depth second IP",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{CloudflareDepth: 2}},
+			req:    &http.Request{Header: map[string][]string{"Cf-Connecting-Ip": {"8.8.8.8, 1.2.3.4"}}},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			desc: "denied via CfConnectingIp depth",
-			config: &DdnsAllowListConfig{
-				SourceRangeHosts: []string{"dns.google"},
-				IPStrategy: &dynamic.IPStrategy{
-					CloudflareDepth: 1,
-				},
-			},
-			req: &http.Request{
-				Header: map[string][]string{
-					"Cf-Connecting-Ip": {"1.2.3.4"},
-				},
-			},
+			desc:   "denied via CfConnectingIp depth",
+			config: &DdnsAllowListConfig{SourceRangeHosts: []string{"dns.google"}, IPStrategy: &dynamic.IPStrategy{CloudflareDepth: 1}},
+			req:    &http.Request{Header: map[string][]string{"Cf-Connecting-Ip": {"1.2.3.4"}}},
 			expectedStatus: http.StatusForbidden,
 		},
 		{
@@ -447,6 +453,11 @@ func TestServeHTTP(t *testing.T) {
 			},
 			expectedStatus: http.StatusForbidden,
 		},
+	}
+}
+
+func getIPv6TestCases() []serveHTTPTestCase {
+	return []serveHTTPTestCase{
 		{
 			desc: "allowed IPv6 with diff interface identifier",
 			config: &DdnsAllowListConfig{
@@ -481,12 +492,14 @@ func TestServeHTTP(t *testing.T) {
 			expectedStatus: http.StatusForbidden,
 		},
 	}
+}
 
+func runServeHTTPTests(t *testing.T, testCases []serveHTTPTestCase) {
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	for _, tc := range testCase {
+	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -551,7 +564,6 @@ func TestResolveHosts(t *testing.T) {
 			desc:            "no hosts",
 			hosts:           []string{},
 			expectedHostIPs: []string{},
-			// TODO: might check if empty was logged?
 		},
 		{
 			desc:            "localhost",
