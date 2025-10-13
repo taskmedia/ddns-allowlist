@@ -22,7 +22,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: [1.25.1, 1.24.x, 1.x]
+        go-version: [1.25.2, 1.x]
         os: [ubuntu-latest, macos-latest]
 
     steps:
