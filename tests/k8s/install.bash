@@ -47,7 +47,7 @@ kubectl apply -f "${DIR_TESTS_K8s}/resources/default.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/allow.yml" --namespace whoami
 kubectl apply -f "${DIR_TESTS_K8s}/resources/deny.yml" --namespace whoami
 
-IP_TRAEFIK=$(kubectl get pods -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].status.podIP}')
+IP_TRAEFIK=$(kubectl get pods -l app.kubernetes.io/name=traefik -n ingress -o jsonpath='{.items[0].status.podIP}')
 # get first IP address
 IP_TUNNEL="${IP_TRAEFIK%.*}.1"
 
