@@ -1,6 +1,6 @@
 module github.com/taskmedia/ddns-allowlist
 
-go 1.25.2
+go 1.24.7
 
 require github.com/stretchr/testify v1.11.1
 
