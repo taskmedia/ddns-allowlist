@@ -18,7 +18,7 @@ jobs:
       with:
         version: v3.19.0
 
-    - uses: medyagh/setup-minikube@v0.0.20
+    - uses: medyagh/setup-minikube@v0.0.21
 
     - name: wait for kube-dns
       run: kubectl wait --namespace kube-system --for=condition=ready pod -l k8s-app=kube-dns --timeout=30s
